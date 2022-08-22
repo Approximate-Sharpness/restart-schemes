@@ -13,14 +13,13 @@
 %   opA       - QCBP fidelity linear operator
 %   b         - QCBP fidelity vector
 %   nlvl      - noise level
-%   eval_obj  - flag to store objective function and constraint 
-%               evaluations
+%   eval_fns  - cell array of function handles to evaluate on each iterate
+%               (assign the empty array [] to disable)
 %
 % OUTPUT
 % ======
 %   result    - ergodic average of all primal iterates
-%   o_values  - objective function evaluations of primal ergodic averages
-%   c_values  - constraint evaluations of primal ergodic averages
+%   ev_values - eval_fns function evaluations of primal ergodic averages
 %
 % NOTES
 % =====
@@ -39,16 +38,14 @@
 %   - TO DO ...
 %
 
-function [result, o_values, c_values] = fom_primal_dual_cb(x0, y0, tau, sigma, num_iters, opA, b, nlvl, eval_obj)
+function [result, ev_values] = fom_primal_dual_cb(x0, y0, tau, sigma, num_iters, opA, b, nlvl, eval_fns)
 
 x = x0;
 y = y0;
 Xavg = zeros(size(x0));
 Yavg = zeros(size(y0));
 
-o_values = cell(num_iters,1);
-c_values = cell(num_iters,1);
-
+ev_values = zeros(length(eval_fns),num_iters);
 
 for j=0:num_iters-1
     q = x-tau.*opA(y,1);
@@ -59,9 +56,10 @@ for j=0:num_iters-1
     
     x = x_next;
 
-    if eval_obj
-        o_values{j+1} = norm(Xavg,1);
-        c_values{j+1} = norm(opA(Xavg,0)-b,2);
+    if ~isempty(eval_fns)
+        for fidx=1:length(eval_fns)
+            ev_values(fidx,j+1) = eval_fns{fidx}(Xavg);
+        end
     end
 end
 

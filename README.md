@@ -2,6 +2,10 @@
 
 MATLAB code for restart schemes, *currently a work-in-progress!*
 
+If you plan to run anything here, you should know that
+
+- the radial restart scheme code was updated, now the NESTA and FISTA examples do not work
+
 ## Requirements
 
 Runs on MATLAB R2020b without issue. *TO DO: list toolboxes if any are used.*

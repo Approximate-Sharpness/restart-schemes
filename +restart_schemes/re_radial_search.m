@@ -14,20 +14,24 @@
 %   g      - scalar feasibility gap function
 %   kappa  - feasibility gap parameter
 %   x0     - initial guess
-%   eps0   - an upper bound for f(x0) + kappa*g(x0)
-%   t      - number of restart iterations
+%   eps0   - an upper bound for f(x0) + kappa*g(x0)  
+%   restarts    - number of restarts to perform
 %
 % OPTIONAL PARAMETERS
 % ===================
-%   alpha  - scaling sharpness constant
-%   beta   - exponent sharpness constant
-%   eta    - additive sharpness constant
+%   alpha       - scaling sharpness constant
+%   beta        - exponent sharpness constant
+%   eta         - additive sharpness constant
+%   eval_fns    - cell array of function handles to evaluate on each 
+%                 iterate
+%   total_iters - stop after at some number of total iterations are 
+%                 performed
 %
 % OUTPUT
 % ======
 %   result         - final iterate minimizing f + kappa*g
-%   inner_o_values - cell of o_values output from each fom instance
-%   inner_c_values - cell of c_values output from each fom instance
+%   re_ev_values   - evaluation of eval_fns at each executed restart
+%   re_inner_iters - number of inner iterations at each executed restart
 %
 % NOTES
 % =====
@@ -62,15 +66,22 @@
 %   - TO DO ...
 %
 
-function [result, inner_o_values, inner_c_values] = re_radial_search(...
-    fom, C_fom, f, g, kappa, x0, eps0, t, varargin)
+function [result, re_ev_values, re_inner_iters] = re_radial_search(...
+    fom, C_fom, f, g, kappa, x0, eps0, restarts, varargin)
 
 inp = inputParser;
 validNumScalar = @(x) isnumeric(x) && isscalar(x);
+validPositiveScalar = @(x) validNumScalar(x) && x > 0;
+validFnHandles = @(x) iscell(x) && all(cellfun(@(f) isa(f,'function_handle'),x));
 addParameter(inp,'alpha',[],validNumScalar);
 addParameter(inp,'beta',[],validNumScalar);
 addParameter(inp,'eta',[],validNumScalar);
+addParameter(inp,'eval_fns',[],validFnHandles);
+addParameter(inp,'total_iters',[],validPositiveScalar);
 parse(inp,varargin{:});
+
+total_iters = inp.Results.total_iters;
+eval_fns = inp.Results.eval_fns;
 
 grid_flags = [1,1,1];
 
@@ -78,7 +89,7 @@ if validNumScalar(inp.Results.alpha); grid_flags(1) = 0; end
 if validNumScalar(inp.Results.beta); grid_flags(2) = 0; end
 if validNumScalar(inp.Results.eta); grid_flags(3) = 0; end
 
-phi = restart_schemes.create_radial_order_schedule(t, grid_flags);
+phi = restart_schemes.create_radial_order_schedule(restarts, grid_flags);
 
 ijk_tuples = unique(phi(:,1:3),'rows');
 
@@ -91,10 +102,21 @@ x = x0;
 F = @(x) f(x) + kappa*g(x);
 F_min_value = F(x0);
 
-inner_o_values = cell(t,1);
-inner_c_values = cell(t,1);
+re_ev_values = cell(restarts,1);
+re_inner_iters = cell(restarts,1);
 
-for m=1:t
+
+m = 0;
+
+while true
+    m = m + 1;
+    
+    if (m > restarts) || (~isempty(total_iters) && sum(V) > total_iters)
+        re_ev_values = re_ev_values(1:m-1);
+        re_inner_iters = re_inner_iters(1:m-1);
+        break
+    end
+    
     i = phi(m,1); j = phi(m,2); k = phi(m,3); l = phi(m,4);
     
     ijk_ = find_idx_in_array(ijk_tuples, [i,j,k]);
@@ -122,22 +144,29 @@ for m=1:t
     end
     
     if (V(ijk_)+C_fom(delta, next_eps)) <= l
-        fprintf('Executing restart with (i,j,k,l) == (%d,%d,%d,%d)\n',i,j,k,l)
-        [z, o_values, c_values] = fom(delta, next_eps, x);
-        inner_o_values{m} = o_values;
-        inner_c_values{m} = c_values;
-        F_next_value = F(z);
-        if F_next_value < F_min_value
-            F_min_value = F_next_value;
-            x = z;
+        [z, ~] = fom(delta, next_eps, x);
+        
+        if all(~grid_flags)
+            x = z; % do not use argmin if using all fixed sharpness constants
+        else
+            F_next_value = F(z);
+            if F_next_value < F_min_value
+                F_min_value = F_next_value;
+                x = z;
+            end
         end
+        
+        re_ev_values{m} = zeros(length(eval_fns),1);
+        for fidx=1:length(eval_fns)
+            re_ev_values{m}(fidx) = eval_fns{fidx}(x);
+        end
+        re_inner_iters{m} = C_fom(delta, next_eps);
         
         V(ijk_) = V(ijk_) + C_fom(delta, next_eps);
         U(ijk_) = U(ijk_) + 1;
     end  
 end
 
-fprintf('Total iterations executed: %d\n', sum(V))
 result = x;
 
 end
