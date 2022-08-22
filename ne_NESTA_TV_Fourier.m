@@ -59,9 +59,10 @@ L_W = 2*sqrt(2);
 beta = 1.0;    % sharpness exponent
 t = 2000;        % num of restart iterations
 
-f = @(z) norm(opW(x,0),1); % objective function
+s = sum(abs(opW(x,0)) ~= 0); % sparsity level
+f = @(z) norm(opW(x,0),1)/sqrt(s); % objective function
 g = @(z) 0;      % gap function
-kappa = 0;          % scalar factor for gap function
+kappa = 0;       % scalar factor for gap function
 
 % here we project the zero vector onto the constraint set, resulting in z0
 lmult = max(0,norm(y,2)/nlevel-1);
@@ -77,26 +78,26 @@ nesta_algo = @(delta, eps, x_init) fom_nesta(...
 opt_value = f(x) + kappa.*g(x);
 
 [~, o_re_cell, c_re_cell] = re_radial_search(...
-    nesta_algo,nesta_cost,f,g,kappa,z0,eps0,t,'beta',beta,'eta',nlevel);
+    nesta_algo,nesta_cost,f,g,kappa,z0,eps0,t,'beta',beta);
 
 o_values_re = h_concatenate_cell_entries(o_re_cell);
 c_values_re = h_concatenate_cell_entries(c_re_cell);
 
-re_values = o_values_re + kappa.*c_values_re;
+re_values = o_values_re/sqrt(s) + kappa.*c_values_re;
 
 [~, o_nesta_cell, c_nesta_cell] = fom_nesta(...
-    z0, opA, c_A, y, opW, L_W, length(re_values), nlevel, 1e-3, 1);
+    z0, opA, c_A, y, opW, L_W, length(re_values), nlevel, 1e-4, 1);
 
 o_values_nesta = cell2mat(o_nesta_cell);
 c_values_nesta = cell2mat(c_nesta_cell);
 
-nesta_values = o_values_nesta + kappa.*c_values_nesta;
+nesta_values = o_values_nesta/sqrt(s) + kappa.*c_values_nesta;
 
 %% Generate plots
 
-semilogy([1:length(re_values)], cummin(re_values-opt_value));
+semilogy([1:length(re_values)], cummin(re_values));
 hold on
-semilogy([1:length(nesta_values)], nesta_values-opt_value);
+semilogy([1:length(nesta_values)], nesta_values);
 legend({'restarts','no restarts'});
 hold off
 
