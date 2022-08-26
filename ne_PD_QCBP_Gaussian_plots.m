@@ -1,5 +1,5 @@
 clear
-close
+close all
 clc
 
 import ne_methods.op_matrix_operator 
@@ -50,7 +50,7 @@ opt_value = f(x) + kappa.*g(x);
 
 eval_fns = {f, g};
 
-pd_cost = @(delta, eps) ceil(2*L_A*delta/eps);
+pd_cost = @(delta, eps) ceil(2*L_A*kappa*delta/eps);
 pd_algo = @(delta, eps, x_init) fom_primal_dual_cb(...
     x_init, y0, delta/L_A, 1/(delta*L_A), pd_cost(delta,eps), opA, y, nlevel, []);
 

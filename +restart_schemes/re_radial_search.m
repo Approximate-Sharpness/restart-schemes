@@ -102,9 +102,11 @@ x = x0;
 F = @(x) f(x) + kappa*g(x);
 F_min_value = F(x0);
 
-re_ev_values = cell(restarts,1);
-re_inner_iters = cell(restarts,1);
+re_ev_values = cell(restarts+1,1);
+re_inner_iters = cell(restarts+1,1);
 
+re_ev_values{1} = F_min_value;
+re_inner_iters{1} = 0;
 
 m = 0;
 
@@ -156,11 +158,11 @@ while true
             end
         end
         
-        re_ev_values{m} = zeros(length(eval_fns),1);
+        re_ev_values{m+1} = zeros(length(eval_fns),1);
         for fidx=1:length(eval_fns)
-            re_ev_values{m}(fidx) = eval_fns{fidx}(x);
+            re_ev_values{m+1}(fidx) = eval_fns{fidx}(x);
         end
-        re_inner_iters{m} = C_fom(delta, next_eps);
+        re_inner_iters{m+1} = C_fom(delta, next_eps);
         
         V(ijk_) = V(ijk_) + C_fom(delta, next_eps);
         U(ijk_) = U(ijk_) + 1;
