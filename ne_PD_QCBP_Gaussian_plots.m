@@ -35,7 +35,7 @@ y = A*x + nlevel*e/norm(e);
 
 beta = 1.0;    % sharpness exponent
 
-% defined per experiment:
+% these are defined per subexperiment; do not uncomment these!
 % t = 10000;    % num of restart iterations
 % max_total_iters = 2000; % maximum number of total iterations to run
 
@@ -55,6 +55,15 @@ pd_algo = @(delta, eps, x_init) fom_primal_dual_cb(...
     x_init, y0, delta/L_A, 1/(delta*L_A), pd_cost(delta,eps), opA, y, nlevel, []);
 
 
+%% Plotting parameters
+
+x_axis_label = 'total iterations';
+y_axis_label = 'objective-gap sum error';
+
+[~,fname,~] = fileparts(mfilename);
+dname = sprintf('results/%s/', fname);
+mkdir(dname);
+
 %% grid search over alpha, eta
 
 t = 150000;
@@ -70,9 +79,9 @@ re_values = re_ev_values(1,:) + kappa.*re_ev_values(2,:);
 figure(1)
 
 semilogy(re_ev_indices, re_values-opt_value);
-xlabel('total iterations')
-ylabel('objective-gap sum')
-savefig('grid_search_alpha_eta')
+xlabel(x_axis_label)
+ylabel(y_axis_label)
+savefig(fullfile(dname,'grid_search_alpha_eta'))
 
 clear -regexp ^re_;
 
@@ -107,8 +116,8 @@ for i=1:length(eta)
     hold on
 end
 
-xlabel('total iterations')
-ylabel('objective-gap sum')
+xlabel(x_axis_label)
+ylabel(y_axis_label)
 
 legend_labels = cell(length(eta),1);
 for i=1:length(eta)
@@ -119,7 +128,7 @@ legend(legend_labels)
 
 hold off
 
-savefig('grid_search_alpha-fixed_eta')
+savefig(fullfile(dname,'grid_search_alpha-fixed_eta'))
 
 clear -regexp ^re_;
 clear legend_labels;
@@ -155,8 +164,8 @@ for i=1:length(alpha)
     hold on
 end
 
-xlabel('total iterations')
-ylabel('objective-gap sum')
+xlabel(x_axis_label)
+ylabel(y_axis_label)
 
 legend_labels = cell(length(alpha),1);
 for i=1:length(alpha)
@@ -167,7 +176,7 @@ legend(legend_labels)
 
 hold off
 
-savefig('grid_search_eta-fixed_alpha')
+savefig(fullfile(dname,'grid_search_eta-fixed_alpha'))
 
 clear -regexp ^re_;
 clear legend_labels;
@@ -195,8 +204,8 @@ for i=1:length(alpha)
     hold on
 end
 
-xlabel('total iterations')
-ylabel('objective-gap sum')
+xlabel(x_axis_label)
+ylabel(y_axis_label)
 
 legend_labels = cell(length(alpha),1);
 for i=1:length(alpha)
@@ -207,7 +216,7 @@ legend(legend_labels)
 
 hold off
 
-savefig('fixed_alpha_eta')
+savefig(fullfile(dname,'fixed_alpha_eta'))
 
 clear -regexp ^re_;
 clear legend_labels;
@@ -247,8 +256,8 @@ end
 
 semilogy([1:max_total_iters], abs(pd_values-opt_value));
 
-xlabel('total iterations')
-ylabel('objective-gap sum')
+xlabel(x_axis_label)
+ylabel(y_axis_label)
 
 legend_labels = cell(4,1);
 legend_labels{1} = '\alpha,\eta-grid';
@@ -259,14 +268,15 @@ legend(legend_labels)
 
 hold off
 
-savefig('standard_pd_comparison')
+savefig(fullfile(dname,'standard_pd_comparison'))
 
 clear -regexp ^re_;
 
 
 
-%% Feasibility gap function handle
+%% Additional functions specific to the experiment
 
+% Feasibility gap function handle
 function out = feasibility_gap(z, center, rad)
 dist = norm(z-center,2);
 out = max(dist-rad,0);
