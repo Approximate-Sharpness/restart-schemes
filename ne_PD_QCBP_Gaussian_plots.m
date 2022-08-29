@@ -45,14 +45,13 @@ kappa = 1e1; % scalar factor for gap function
 
 x0 = zeros(N,1);
 y0 = zeros(m,1);
-eps0 = f(x0) + kappa.*g(x0);
 opt_value = f(x) + kappa.*g(x);
 
 eval_fns = {f, g};
 
 pd_cost = @(delta, eps) ceil(2*L_A*kappa*delta/eps);
 pd_algo = @(delta, eps, x_init) fom_primal_dual_cb(...
-    x_init, y0, delta/L_A, 1/(delta*L_A), pd_cost(delta,eps), opA, y, nlevel, []);
+    x_init, y0, delta/(kappa*L_A), kappa/(delta*L_A), pd_cost(delta,eps), opA, y, nlevel, []);
 
 
 %% Plotting parameters
@@ -70,7 +69,7 @@ t = 150000;
 max_total_iters = 100000;
 
 [~, re_ev_cell, re_ii_cell] = re_radial_search(...
-    pd_algo,pd_cost,f,g,kappa,x0,eps0,t,'beta',beta,'eval_fns',eval_fns,'total_iters',max_total_iters);
+    pd_algo,pd_cost,f,g,kappa,x0,t,'beta',beta,'eval_fns',eval_fns,'total_iters',max_total_iters);
 
 [re_ev_values, re_ev_indices] = h_extract_re_cell_data(re_ev_cell, re_ii_cell, length(eval_fns));
 
@@ -99,7 +98,7 @@ figure(2)
 
 for i=1:length(eta)
     [~, re_ev_cell, re_ii_cell] = re_radial_search(...
-    pd_algo,pd_cost,f,g,kappa,x0,eps0,t,'beta',beta,'eta',eta(i),'eval_fns',eval_fns,'total_iters',max_total_iters);
+    pd_algo,pd_cost,f,g,kappa,x0,t,'beta',beta,'eta',eta(i),'eval_fns',eval_fns,'total_iters',max_total_iters);
 
     [re_ev_values, re_ev_indices] = h_extract_re_cell_data(re_ev_cell, re_ii_cell, length(eval_fns));
 
@@ -147,7 +146,7 @@ figure(3)
 
 for i=1:length(alpha)
     [~, re_ev_cell, re_ii_cell] = re_radial_search(...
-    pd_algo,pd_cost,f,g,kappa,x0,eps0,t,'beta',beta,'alpha',alpha(i),'eval_fns',eval_fns,'total_iters',max_total_iters);
+    pd_algo,pd_cost,f,g,kappa,x0,t,'beta',beta,'alpha',alpha(i),'eval_fns',eval_fns,'total_iters',max_total_iters);
 
     [re_ev_values, re_ev_indices] = h_extract_re_cell_data(re_ev_cell, re_ii_cell, length(eval_fns));
 
@@ -193,7 +192,7 @@ figure(4)
 
 for i=1:length(alpha)
     [~, re_ev_cell, re_ii_cell] = re_radial_search(...
-    pd_algo,pd_cost,f,g,kappa,x0,eps0,t,'beta',beta,'alpha',alpha(i),'eta',eta,'eval_fns',eval_fns,'total_iters',max_total_iters);
+    pd_algo,pd_cost,f,g,kappa,x0,t,'beta',beta,'alpha',alpha(i),'eta',eta,'eval_fns',eval_fns,'total_iters',max_total_iters);
 
     [re_ev_values, re_ev_indices] = h_extract_re_cell_data(re_ev_cell, re_ii_cell, length(eval_fns));
 
@@ -236,13 +235,13 @@ pd_values = pd_ev_values(1,:) + kappa.*pd_ev_values(2,:);
 for i=1:3
     if i == 1
         [~, re_ev_cell, re_ii_cell] = re_radial_search(...
-            pd_algo,pd_cost,f,g,kappa,x0,eps0,t,'beta',beta,'eval_fns',eval_fns,'total_iters',max_total_iters);
+            pd_algo,pd_cost,f,g,kappa,x0,t,'beta',beta,'eval_fns',eval_fns,'total_iters',max_total_iters);
     elseif i == 2
         [~, re_ev_cell, re_ii_cell] = re_radial_search(...
-            pd_algo,pd_cost,f,g,kappa,x0,eps0,t,'beta',beta,'eta',exp2_best_eta,'eval_fns',eval_fns,'total_iters',max_total_iters);
+            pd_algo,pd_cost,f,g,kappa,x0,t,'beta',beta,'eta',exp2_best_eta,'eval_fns',eval_fns,'total_iters',max_total_iters);
     elseif i == 3
         [~, re_ev_cell, re_ii_cell] = re_radial_search(...
-            pd_algo,pd_cost,f,g,kappa,x0,eps0,t,'beta',beta,'alpha',exp3_best_alpha,'eval_fns',eval_fns,'total_iters',max_total_iters);
+            pd_algo,pd_cost,f,g,kappa,x0,t,'beta',beta,'alpha',exp3_best_alpha,'eval_fns',eval_fns,'total_iters',max_total_iters);
     end
 
     [re_ev_values, re_ev_indices] = h_extract_re_cell_data(re_ev_cell, re_ii_cell, length(eval_fns));
@@ -261,7 +260,7 @@ ylabel(y_axis_label)
 
 legend_labels = cell(4,1);
 legend_labels{1} = '\alpha,\eta-grid';
-legend_labels{2} = sprintf('\\alpha-grid, \\eta = %s', num2str(exp2_best_eta));
+legend_labels{2} = sprintf('\\alpha-grid, \\eta = 10^{%s}', num2str(log10(exp2_best_eta)));
 legend_labels{3} = sprintf('\\eta-grid, \\alpha = %s', num2str(exp3_best_alpha));
 legend_labels{4} = 'no restarts';
 legend(legend_labels)

@@ -14,14 +14,13 @@
 %   num_iters - number of iterations
 %   nlvl      - noise level
 %   mu        - smoothing parameter
-%   eval_obj  - flag to store objective function and constraint
-%               evaluations
+%   eval_fns  - cell array of function handles to evaluate on each iterate
+%               (assign the empty array [] to disable)
 %
 % OUTPUT
 % ======
 %   result    - approximate minimizer of aQCBP
-%   o_values  - objective function evaluations of primal iterates
-%   c_values  - constraint evaluations of primal iterates
+%   ev_values - eval_fns function evaluations of iterates
 %
 % NOTES
 % =====
@@ -46,13 +45,12 @@
 %   - TO DO ...
 %
 
-function [result, o_values, c_values] = fom_nesta(z0, opA, c_A, b, opW, L_W, num_iters, nlvl, mu, eval_obj)
+function [result, ev_values] = fom_nesta(z0, opA, c_A, b, opW, L_W, num_iters, nlvl, mu, eval_fns)
 
 z = z0;
 q_v = z0;
 
-o_values = cell(num_iters,1);
-c_values = cell(num_iters,1);
+ev_values = zeros(length(eval_fns),num_iters);
 
 for n=0:num_iters-1
     % compute x_n
@@ -66,9 +64,11 @@ for n=0:num_iters-1
     
     x = lam/((lam+1)*c_A)*opA(dy,1) + q;
     
-    if eval_obj
-        o_values{n+1} = norm(opW(x,0),1);
-        c_values{n+1} = norm(opA(x,0)-b,2);
+    
+    if ~isempty(eval_fns)
+        for fidx=1:length(eval_fns)
+            ev_values(fidx,n+1) = eval_fns{fidx}(x);
+        end
     end
     
     % compute v_n
