@@ -46,6 +46,7 @@ kappa = 1e1; % scalar factor for gap function
 x0 = zeros(N,1);
 y0 = zeros(m,1);
 opt_value = f(x) + kappa.*g(x);
+eps0 = f(x0) + kappa.*g(x0);
 
 eval_fns = {f, g};
 
@@ -72,7 +73,7 @@ max_total_iters = 4000;
 
 for i=1:length(alpha)
     [~, re_ev_cell, re_ii_cell] = re_fixed_consts_new(...
-    pd_algo,pd_cost,f,g,kappa,x0,t,alpha(i),beta,'eval_fns',eval_fns,'total_iters',max_total_iters);
+    pd_algo,pd_cost,f,g,kappa,x0,eps0,t,alpha(i),beta,'eval_fns',eval_fns,'total_iters',max_total_iters);
 
     [re_ev_values, re_ev_indices] = h_extract_re_cell_data(re_ev_cell, re_ii_cell, length(eval_fns));
 

@@ -15,7 +15,7 @@ import restart_schemes.re_fixed_consts_new
 X = double(imread('data/GPLU_phantom_512.png'))/255;
 
 [N, ~] = size(X); % image size (assumed to be N by N)
-nlevel = 1e-3;    % noise level
+nlevel = 1e-5;    % noise level
 sample_rate = 0.15;
 m = ceil(sample_rate*N*N);
 
@@ -56,7 +56,9 @@ L_W = 2*sqrt(2);
 
 %% Restart scheme parameters
 
-beta = 1.0;    % sharpness exponent
+alpha = 500;   % scaling sharpness constant
+beta = 1.0;  % exponent sharpness exponent
+t = 20;      % number of restarts
 
 s = sum(abs(opW(x,0)) ~= 0); % sparsity level
 f = @(z) norm(opW(z,0),1)/sqrt(s); % objective function
@@ -66,12 +68,13 @@ kappa = 0;       % scalar factor for gap function
 % here we project the zero vector onto the constraint set, resulting in z0
 lmult = max(0,norm(y,2)/nlevel-1);
 z0 = (lmult/((lmult+1)*c_A)).*opA(y,1);
+eps0 = N*N;
 
 normx = norm(x,2);
-%eval_fns = {@(z) norm(z-x,2)/normx}; % relative reconstruction error
-eval_fns = {f};
+% objective value and relative reconstruction error
+eval_fns = {f, @(z) norm(z-x,2)/normx};
 
-nesta_cost = @(delta, eps) ceil(8*N*delta/eps);
+nesta_cost = @(delta, eps) ceil(4*sqrt(2)*N*delta/eps);
 nesta_algo = @(delta, eps, x_init) fom_nesta(...
     x_init, opA, c_A, y, opW, L_W, nesta_cost(delta,eps), nlevel, eps/(N*N), []);
 
@@ -79,7 +82,6 @@ nesta_algo = @(delta, eps, x_init) fom_nesta(...
 %% Plotting parameters
 
 x_axis_label = 'total iterations';
-y_axis_label = 'objective value';
 
 [~,fname,~] = fileparts(mfilename);
 dname = sprintf('results/%s/', fname);
@@ -87,31 +89,23 @@ mkdir(dname);
 
 %% fixed alpha
 
-alpha = logspace(1.5,2.8,1);
-t = 15;
-%max_total_iters = 1000;
+[result, re_ev_cell, re_ii_cell] = re_fixed_consts_new(...
+nesta_algo,nesta_cost,f,g,kappa,z0,eps0,t,alpha,beta,'eval_fns',eval_fns);%,'total_iters',max_total_iters);
 
-for i=1:length(alpha)
-    [result, re_ev_cell, re_ii_cell] = re_fixed_consts_new(...
-    nesta_algo,nesta_cost,f,g,kappa,z0,t,alpha(i),beta,'eval_fns',eval_fns);%,'total_iters',max_total_iters);
+[re_ev_values, re_ev_indices] = h_extract_re_cell_data(re_ev_cell, re_ii_cell, length(eval_fns));
 
-    [re_ev_values, re_ev_indices] = h_extract_re_cell_data(re_ev_cell, re_ii_cell, length(eval_fns));
-    
-    semilogy(re_ev_indices, re_ev_values)
-
-    hold on
-end
+figure(1)
+semilogy(re_ev_indices, re_ev_values(1,:))
 
 xlabel(x_axis_label)
-ylabel(y_axis_label)
+ylabel('objective value')
 
-legend_labels = cell(length(alpha),1);
-for i=1:length(alpha)
-    legend_labels{i} = sprintf('log_{10}(\\alpha) = %s', num2str(log10(alpha(i))));
-end
+savefig(fullfile(dname,'fixed_alpha_obj_value'))
 
-legend(legend_labels)
+figure(2)
+semilogy(re_ev_indices, re_ev_values(2,:))
 
-hold off
+xlabel(x_axis_label)
+ylabel('relative reconstruction error')
 
-savefig(fullfile(dname,'fixed_alpha'))
+savefig(fullfile(dname,'fixed_alpha_rel_recon_error'))

@@ -14,6 +14,7 @@
 %   g      - scalar feasibility gap function
 %   kappa  - feasibility gap parameter
 %   x0     - initial guess 
+%   eps0   - an upper bound for f(x0) + kappa*g(x0)
 %   restarts    - number of restarts to perform
 %
 % OPTIONAL PARAMETERS
@@ -66,7 +67,7 @@
 %
 
 function [result, re_ev_values, re_inner_iters] = re_radial_search(...
-    fom, C_fom, f, g, kappa, x0, restarts, varargin)
+    fom, C_fom, f, g, kappa, x0, eps0, restarts, varargin)
 
 inp = inputParser;
 validNumScalar = @(x) isnumeric(x) && isscalar(x);
@@ -97,7 +98,6 @@ U = zeros(size(ijk_tuples,1),1);
 V = zeros(size(ijk_tuples,1),1);
 
 F = @(x) f(x) + kappa*g(x);
-eps0 = F(x0);
 F_min_value = eps0;
 
 re_ev_values = cell(restarts+1,1);

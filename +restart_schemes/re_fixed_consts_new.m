@@ -13,6 +13,7 @@
 %   g      - scalar feasibility gap function
 %   kappa  - feasibility gap parameter
 %   x0     - initial guess
+%   eps0   - an upper bound for f(x0) + kappa*g(x0)
 %   restarts    - number of restarts to perform
 %
 % OPTIONAL PARAMETERS
@@ -65,7 +66,7 @@
 %
 
 function [result, re_ev_values, re_inner_iters] = re_fixed_consts_new(...
-    fom, C_fom, f, g, kappa, x0, restarts, alpha, beta, varargin)
+    fom, C_fom, f, g, kappa, x0, eps0, restarts, alpha, beta, varargin)
 
 inp = inputParser;
 validPositiveScalar = @(x) isnumeric(x) && isscalar(x) && x > 0;
@@ -81,7 +82,6 @@ mach_eps = eps;
 
 F = @(x) f(x) + kappa*g(x);
 
-eps0 = F(x0);
 F_min_value = eps0;
 
 r = exp(-1);
@@ -111,6 +111,7 @@ while true
     
     next_beps = max(r*beps,mach_eps);
     delta = (2*beps/alpha)^(1/beta);
+    fprintf('total iters: %d\n', C_fom(delta, next_beps))
     z = fom(delta, next_beps, x);
 
     F_next_value = F(z);
