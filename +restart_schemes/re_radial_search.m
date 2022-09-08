@@ -4,7 +4,7 @@
 %   algorithm. The sharpness constants are specified optionally, where for
 %   those not specified, a logarithmic grid search for the unspecified
 %   constants is augmented to the restart scheme. The search uses a radial 
-%   ordering of instance execution. [TO DO ... / REF]
+%   ordering of instance execution. 
 %
 % REQUIRED INPUT
 % ==============
@@ -21,7 +21,6 @@
 % ===================
 %   alpha       - scaling sharpness constant
 %   beta        - exponent sharpness constant
-%   eta         - additive sharpness constant
 %   eval_fns    - cell array of function handles to evaluate on each 
 %                 iterate
 %   total_iters - stop after at some number of total iterations are 
@@ -58,8 +57,8 @@
 %   
 %   Note that the radial ordering implementation here restricts the range
 %   of which sharpness constants are considered, with exponent of maximum
-%   absolute value equal to 32. Thus, for example, the smallest eta value
-%   tested is exp(-32).
+%   absolute value equal to floor(abs(log(eps))), where eps is machine
+%   epsilon.
 %
 % REFERENCES
 % ==========
@@ -75,7 +74,6 @@ validPositiveScalar = @(x) validNumScalar(x) && x > 0;
 validFnHandles = @(x) iscell(x) && all(cellfun(@(f) isa(f,'function_handle'),x));
 addParameter(inp,'alpha',[],validNumScalar);
 addParameter(inp,'beta',[],validNumScalar);
-addParameter(inp,'eta',[],validNumScalar);
 addParameter(inp,'eval_fns',[],validFnHandles);
 addParameter(inp,'total_iters',[],validPositiveScalar);
 parse(inp,varargin{:});
@@ -83,19 +81,18 @@ parse(inp,varargin{:});
 total_iters = inp.Results.total_iters;
 eval_fns = inp.Results.eval_fns;
 
-grid_flags = [1,1,1];
+grid_flags = [1,1];
 
 if validNumScalar(inp.Results.alpha); grid_flags(1) = 0; end
 if validNumScalar(inp.Results.beta); grid_flags(2) = 0; end
-if validNumScalar(inp.Results.eta); grid_flags(3) = 0; end
 
 phi = restart_schemes.create_radial_order_schedule(restarts, grid_flags);
 
-ijk_tuples = unique(phi(:,1:3),'rows');
+ij_tuples = unique(phi(:,1:2),'rows');
 
 r = exp(-1);
-U = zeros(size(ijk_tuples,1),1);
-V = zeros(size(ijk_tuples,1),1);
+U = zeros(size(ij_tuples,1),1);
+V = zeros(size(ij_tuples,1),1);
 
 F = @(x) f(x) + kappa*g(x);
 F_min_value = eps0;
@@ -121,34 +118,31 @@ while true
         break
     end
     
-    i = phi(m,1); j = phi(m,2); k = phi(m,3); l = phi(m,4);
+    i = phi(m,1); j = phi(m,2); k = phi(m,3);
     
-    ijk_ = find_idx_in_array(ijk_tuples, [i,j,k]);
+    ij_ = find_idx_in_array(ij_tuples, [i,j]);
     
     if grid_flags(1); alpha = exp(i); else; alpha = inp.Results.alpha; end
     if grid_flags(2); beta = exp(j); else; beta = inp.Results.beta; end
-    if grid_flags(3); eta = exp(k); else; eta = inp.Results.eta; end
     
-    if U(ijk_) == 0
-        eps = eps0;
-    else
-        eps = r^(U(ijk_))*eps0 + r*(1-r^(U(ijk_)))/(1-r)*eta;
-    end
+    tol = r^(U(ij_))*eps0;
     
-    next_eps = r*(eps + eta);
+    next_tol = max(r*tol,10*eps); % do not go below machine epsilon
     
     if grid_flags(2) % if beta grid search is enabled
-        if (eps + eta) > alpha
-            delta = ((eps + eta)/alpha)^(min(exp(1)/beta,1));
+        if (2*tol) > alpha
+            delta = (2*tol/alpha)^(min(exp(1)/beta,1));
         else
-            delta = ((eps + eta)/alpha)^(1/beta);
+            delta = (2*tol/alpha)^(1/beta);
         end
     else % otherwise, beta grid search is disabled
-        delta = ((eps + eta)/alpha)^(1/beta);
+        delta = (2*tol/alpha)^(1/beta);
     end
     
-    if (V(ijk_)+C_fom(delta, next_eps)) <= l
-        [z, ~] = fom(delta, next_eps, x);
+    delta = max(delta,10*eps); % do not go below machine epsilon
+    
+    if (V(ij_)+C_fom(delta, next_tol)) <= k
+        [z, ~] = fom(delta, next_tol, x);
         
         if all(~grid_flags)
             x = z; % do not use argmin if using all fixed sharpness constants
@@ -164,10 +158,10 @@ while true
         for fidx=1:length(eval_fns)
             re_ev_values{m+1}(fidx) = eval_fns{fidx}(x);
         end
-        re_inner_iters{m+1} = C_fom(delta, next_eps);
+        re_inner_iters{m+1} = C_fom(delta, next_tol);
         
-        V(ijk_) = V(ijk_) + C_fom(delta, next_eps);
-        U(ijk_) = U(ijk_) + 1;
+        V(ij_) = V(ij_) + C_fom(delta, next_tol);
+        U(ij_) = U(ij_) + 1;
     end  
 end
 

@@ -1,5 +1,5 @@
 clear
-close
+close all
 clc
 
 import ne_methods.*
@@ -15,8 +15,8 @@ import restart_schemes.re_radial_search
 X = double(imread('data/GPLU_phantom_512.png'))/255;
 
 [N, ~] = size(X); % image size (assumed to be N by N)
-nlevel = 1e-6;    % noise level
-sample_rate = 0.12;
+nlevel = 1e-5;    % noise level
+sample_rate = 0.15;
 m = ceil(sample_rate*N*N);
 
 % generate sampling mask
@@ -39,7 +39,7 @@ m_exact = length(sample_idxs);
 %imshow(uni_mask)
 %imshow(var_mask)
 
-% flat image
+% flatten the image
 x = reshape(X,[N*N,1]);
 
 % measurement matrix (subsampled Fourier)
@@ -56,49 +56,56 @@ L_W = 2*sqrt(2);
 
 %% Restart scheme parameters
 
-beta = 1.0;    % sharpness exponent
-t = 2000;        % num of restart iterations
+alpha = 500;   % scaling sharpness constant
+beta = 1.0;  % exponent sharpness exponent
+t = 500;      % number of restarts
 
 s = sum(abs(opW(x,0)) ~= 0); % sparsity level
-f = @(z) norm(opW(x,0),1)/sqrt(s); % objective function
+f = @(z) norm(opW(z,0),1)/sqrt(s); % objective function
 g = @(z) 0;      % gap function
 kappa = 0;       % scalar factor for gap function
 
 % here we project the zero vector onto the constraint set, resulting in z0
 lmult = max(0,norm(y,2)/nlevel-1);
 z0 = (lmult/((lmult+1)*c_A)).*opA(y,1);
-eps0 = f(z0) + kappa.*g(z0);
+eps0 = N*N;
 
-nesta_cost = @(delta, eps) ceil(2*N*delta/eps);
+normx = norm(x,2);
+% objective value and relative reconstruction error
+eval_fns = {f, @(z) norm(z-x,2)/normx};
+
+nesta_cost = @(delta, eps) ceil(4*sqrt(2)*N*delta/eps);
 nesta_algo = @(delta, eps, x_init) fom_nesta(...
-    x_init, opA, c_A, y, opW, L_W, nesta_cost(delta,eps), nlevel, eps/(N*N), 1);
+    x_init, opA, c_A, y, opW, L_W, nesta_cost(delta,eps), nlevel, eps/(N*N), []);
 
-%% Run restart scheme and standard algorithm to compare
 
-opt_value = f(x) + kappa.*g(x);
+%% Plotting parameters
 
-[~, o_re_cell, c_re_cell] = re_radial_search(...
-    nesta_algo,nesta_cost,f,g,kappa,z0,eps0,t,'beta',beta);
+x_axis_label = 'total iterations';
 
-o_values_re = h_concatenate_cell_entries(o_re_cell);
-c_values_re = h_concatenate_cell_entries(c_re_cell);
+[~,fname,~] = fileparts(mfilename);
+dname = sprintf('results/%s/', fname);
+mkdir(dname);
 
-re_values = o_values_re/sqrt(s) + kappa.*c_values_re;
+%% fixed alpha
 
-[~, o_nesta_cell, c_nesta_cell] = fom_nesta(...
-    z0, opA, c_A, y, opW, L_W, length(re_values), nlevel, 1e-4, 1);
+[result, re_ev_cell, re_ii_cell] = re_radial_search(...
+nesta_algo,nesta_cost,f,g,kappa,z0,eps0,t,'alpha',alpha,'beta',beta,'eval_fns',eval_fns);
 
-o_values_nesta = cell2mat(o_nesta_cell);
-c_values_nesta = cell2mat(c_nesta_cell);
+[re_ev_values, re_ev_indices] = h_extract_re_cell_data(re_ev_cell, re_ii_cell, length(eval_fns));
 
-nesta_values = o_values_nesta/sqrt(s) + kappa.*c_values_nesta;
+figure(1)
+semilogy(re_ev_indices, re_ev_values(1,:))
 
-%% Generate plots
+xlabel(x_axis_label)
+ylabel('objective value')
 
-semilogy([1:length(re_values)], cummin(re_values));
-hold on
-semilogy([1:length(nesta_values)], nesta_values);
-legend({'restarts','no restarts'});
-hold off
+savefig(fullfile(dname,'objective_value'))
 
-%imshow(reshape(abs(x_rec),[N,N]));
+figure(2)
+semilogy(re_ev_indices, re_ev_values(2,:))
+
+xlabel(x_axis_label)
+ylabel('relative reconstruction error')
+
+savefig(fullfile(dname,'rel_recon_error'))

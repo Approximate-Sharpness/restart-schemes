@@ -18,8 +18,11 @@
 %
 % OUTPUT
 % ======
-%   result    - ergodic average of all primal iterates
-%   ev_values - eval_fns function evaluations of primal ergodic averages
+%   result    - 1x2 cell, with ergodic average of primal and dual 
+%               iterates in the first and second entry, respectively
+%   ev_values - eval_fns function evaluations of primal and dual ergodic 
+%               averages, where the function will receive a 1x2 cell,
+%               structured as the return value 'result'
 %
 % NOTES
 % =====
@@ -58,12 +61,12 @@ for j=0:num_iters-1
 
     if ~isempty(eval_fns)
         for fidx=1:length(eval_fns)
-            ev_values(fidx,j+1) = eval_fns{fidx}(Xavg);
+            ev_values(fidx,j+1) = eval_fns{fidx}({Xavg,Yavg});
         end
     end
 end
 
-result = Xavg;
+result = {Xavg,Yavg};
 
 end
 
