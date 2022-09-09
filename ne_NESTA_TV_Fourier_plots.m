@@ -86,60 +86,60 @@ mkdir(dname);
 
 %% grid search over alpha and beta
 
-%t = 100000;
-%max_total_iters = 30000;
+t = 100000;
+max_total_iters = 30000;
 
-%[~, re_ev_cell, re_ii_cell] = re_radial_search(...
-%    nesta_algo,nesta_cost,f,g,kappa,z0,eps0,t,'eval_fns',eval_fns,'total_iters',max_total_iters);
+[~, re_ev_cell, re_ii_cell] = re_radial_search(...
+    nesta_algo,nesta_cost,f,g,kappa,z0,eps0,t,'eval_fns',eval_fns,'total_iters',max_total_iters);
 
-%[re_ev_values, re_ev_indices] = h_extract_re_cell_data(re_ev_cell, re_ii_cell, length(eval_fns));
+[re_ev_values, re_ev_indices] = h_extract_re_cell_data(re_ev_cell, re_ii_cell, length(eval_fns));
 
-%figure(1)
+figure(1)
 
-%semilogy(re_ev_indices, re_ev_values);
-%xlabel(x_axis_label)
-%ylabel(y_axis_label)
-%savefig(fullfile(dname,'grid_search_alpha_beta'))
+semilogy(re_ev_indices, re_ev_values);
+xlabel(x_axis_label)
+ylabel(y_axis_label)
+savefig(fullfile(dname,'grid_search_alpha_beta'))
 
-%clear -regexp ^re_;
+clear -regexp ^re_;
 
 
 %% grid search over alpha, fixed beta
 
-%beta = [1 2 3];
+beta = [1 2 3];
 
-%t = 50000;
-%max_total_iters = 10000;
+t = 50000;
+max_total_iters = 10000;
 
-%figure(2)
+figure(2)
 
-%for i=1:length(beta)
-%    [~, re_ev_cell, re_ii_cell] = re_radial_search(...
-%    nesta_algo,nesta_cost,f,g,kappa,z0,eps0,t,'beta',beta(i),'eval_fns',eval_fns,'total_iters',max_total_iters);
+for i=1:length(beta)
+    [~, re_ev_cell, re_ii_cell] = re_radial_search(...
+    nesta_algo,nesta_cost,f,g,kappa,z0,eps0,t,'beta',beta(i),'eval_fns',eval_fns,'total_iters',max_total_iters);
 
-%    [re_ev_values, re_ev_indices] = h_extract_re_cell_data(re_ev_cell, re_ii_cell, length(eval_fns));
+    [re_ev_values, re_ev_indices] = h_extract_re_cell_data(re_ev_cell, re_ii_cell, length(eval_fns));
     
-%    semilogy(re_ev_indices, re_ev_values)
+    semilogy(re_ev_indices, re_ev_values)
     
-%    hold on
-%end
+    hold on
+end
 
-%xlabel(x_axis_label)
-%ylabel(y_axis_label)
+xlabel(x_axis_label)
+ylabel(y_axis_label)
 
-%legend_labels = cell(length(beta),1);
-%for i=1:length(beta)
-%    legend_labels{i} = sprintf('\\beta = %s', num2str(beta(i)));
-%end
+legend_labels = cell(length(beta),1);
+for i=1:length(beta)
+    legend_labels{i} = sprintf('\\beta = %s', num2str(beta(i)));
+end
 
-%legend(legend_labels)
+legend(legend_labels)
 
-%hold off
+hold off
 
-%savefig(fullfile(dname,'grid_search_alpha-fixed_beta'))
+savefig(fullfile(dname,'grid_search_alpha-fixed_beta'))
 
-%clear -regexp ^re_;
-%clear legend_labels;
+clear -regexp ^re_;
+clear legend_labels;
 
 %% fixed alpha, beta
 
@@ -181,7 +181,7 @@ clear -regexp ^re_;
 clear legend_labels;
 
 
-    %% compare standard NESTA with radial-grid restart scheme
+%% compare standard NESTA with radial-grid restart scheme
 
 beta2 = 2;
 alpha3 = 480;

@@ -33,7 +33,7 @@ b = A*x + nlevel*e/norm(e);
 
 %% Restart scheme parameters
 
-f = @(z) norm(z{1},1); % objective function
+f = @(z) norm(z{1},1)/sqrt(s); % objective function
 g = @(z) feasibility_gap(A*z{1}, b, nlevel); % gap function
 kappa = 1e1; % scalar factor for gap function
 
