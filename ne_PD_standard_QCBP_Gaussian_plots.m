@@ -4,7 +4,7 @@ clc
 
 import ne_methods.op_matrix_operator 
 import ne_methods.h_extract_re_cell_data
-import restart_schemes.fom_primal_dual_cb 
+import restart_schemes.fom_primal_dual_QCBP 
 import restart_schemes.re_radial_search
 
 % fix seed for debugging
@@ -46,7 +46,7 @@ eps0 = f(x0y0) + kappa.*g(x0y0);
 eval_fns = {f, g};
 
 pd_cost = @(delta, eps) ceil(2*L_A*kappa*delta/eps);
-pd_algo = @(delta, eps, xy_init) fom_primal_dual_cb(...
+pd_algo = @(delta, eps, xy_init) fom_primal_dual_QCBP(...
     xy_init{1}, y0, delta/(kappa*L_A), kappa/(delta*L_A), pd_cost(delta,eps), opA, b, nlevel, []);
 
 
@@ -171,7 +171,7 @@ max_total_iters = 30000;
 
 figure(4)
 
-[~, pd_ev_values] = fom_primal_dual_cb(...
+[~, pd_ev_values] = fom_primal_dual_QCBP(...
     x0, y0, eps0/L_A, 1/(eps0*L_A), max_total_iters, opA, b, nlevel, eval_fns);
 
 pd_values = pd_ev_values(1,:) + kappa.*pd_ev_values(2,:);

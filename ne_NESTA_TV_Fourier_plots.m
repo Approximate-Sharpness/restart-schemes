@@ -228,6 +228,6 @@ legend(legend_labels)
 
 hold off
 
-savefig(fullfile(dname,'standard_pd_comparison'))
+savefig(fullfile(dname,'standard_nesta_comparison'))
 
 clear -regexp ^re_;

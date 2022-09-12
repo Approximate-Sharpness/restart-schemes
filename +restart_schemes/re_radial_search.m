@@ -144,14 +144,10 @@ while true
     if (V(ij_)+C_fom(delta, next_tol)) <= k
         [z, ~] = fom(delta, next_tol, x);
         
-        if all(~grid_flags)
-            x = z; % do not use argmin if using all fixed sharpness constants
-        else
-            F_next_value = F(z);
-            if F_next_value < F_min_value
-                F_min_value = F_next_value;
-                x = z;
-            end
+        F_next_value = F(z); % perform argmin
+        if F_next_value < F_min_value
+            F_min_value = F_next_value;
+            x = z;
         end
         
         re_ev_values{m+1} = zeros(length(eval_fns),1);
