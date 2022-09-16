@@ -5,7 +5,7 @@ clc
 import ne_methods.op_matrix_operator 
 import ne_methods.h_extract_re_cell_data
 import restart_schemes.fom_primal_dual_QCBP 
-import restart_schemes.re_radial_search
+import restart_schemes.re_radial_search2
 
 % fix seed for debugging
 rng(1)
@@ -35,7 +35,8 @@ b = A*x + nlevel*e/norm(e);
 
 f = @(z) norm(z{1},1)/sqrt(s); % objective function
 g = @(z) feasibility_gap(A*z{1}, b, nlevel); % gap function
-kappa = 1e1; % scalar factor for gap function
+kappa = 10;%1e1; % scalar factor for gap function
+
 
 x0 = zeros(N,1);
 y0 = zeros(m,1);
@@ -45,103 +46,143 @@ eps0 = f(x0y0) + kappa.*g(x0y0);
 
 eval_fns = {@(z) norm(z{1}-x,2)};
 
-pd_cost = @(delta, eps) ceil(2*L_A*kappa*delta/eps);
-pd_algo = @(delta, eps, xy_init) fom_primal_dual_QCBP(...
-    xy_init{1}, y0, delta/(kappa*L_A), kappa/(delta*L_A), pd_cost(delta,eps), opA, b, nlevel, []);
+pd_cost = @(delta, eps, xy_init) ceil(2*L_A*(kappa+norm(xy_init{2}))*delta/eps);
+pd_algo = @(delta, eps, xy_init,F) fom_primal_dual_QCBP(...
+    xy_init{1}, xy_init{2}, delta/((kappa+norm(xy_init{2}))*L_A), (kappa+norm(xy_init{2}))/(delta*L_A), pd_cost(delta,eps,xy_init), opA, b, nlevel, eval_fns, F);
 
 
 %% Plotting parameters
 
-x_axis_label = 'total iterations';
-y_axis_label = 'reconstruction error';
+% x_axis_label = 'total iterations';
+% y_axis_label = 'reconstruction error';
 
 [~,fname,~] = fileparts(mfilename);
 dname = sprintf('results/%s/', fname);
 mkdir(dname);
 
-%% fixed alpha, beta
-
+%% fixed alpha and fixed beta
 beta = 1;
-alpha = logspace(0.25,1.25,5);
+alpha = logspace(0.2,1.4,7);
 
 t = 10000;
-max_total_iters = 2500;
+max_total_iters = 5000;
 
-figure(1)
-
+figure
 for i=1:length(alpha)
-    [~, re_ev_cell, re_ii_cell] = re_radial_search(...
-    pd_algo,pd_cost,f,g,kappa,x0y0,eps0,t,'beta',beta,'alpha',alpha(i),'eval_fns',eval_fns,'total_iters',max_total_iters);
-
-    [re_ev_values, re_ev_indices] = h_extract_re_cell_data(re_ev_cell, re_ii_cell, length(eval_fns));
-
-    semilogy(re_ev_indices, re_ev_values)
-
+    [~, ~, ~, VALS] = re_radial_search2(...
+    pd_algo,pd_cost,f,g,kappa,x0y0,eps0,t,'r',exp(-1),'a',exp(beta),'beta',beta,'alpha',alpha(i),'eval_fns',eval_fns,'total_iters',max_total_iters);
+    semilogy(VALS,'linewidth',2);
     hold on
 end
 
-xlabel(x_axis_label)
-ylabel(y_axis_label)
+legend_labels = cell(length(alpha),1);
+for i=1:length(alpha)
+    legend_labels{i} = strcat('$\log_{10}(\alpha) = $',sprintf(' %s', num2str(log10(alpha(i)))));
+end
+legend(legend_labels,'interpreter','latex','fontsize',14)
+ax=gca; ax.FontSize=14;
+xlim([0,max_total_iters]);  ylim([nlevel/4,max(VALS)])
+hold off
+savefig(fullfile(dname,'fixed_alpha_fixed_beta'))
+
+clear -regexp ^re_;
+clear legend_labels;
+
+%% fixed alpha and search over beta
+alpha = logspace(0.2,1.4,7);
+
+t = 10000;
+max_total_iters = 5000;
+
+figure
+for i=1:length(alpha)
+    [~, ~, ~, VALS] = re_radial_search2(...
+    pd_algo,pd_cost,f,g,kappa,x0y0,eps0,t,'r',exp(-1),'alpha',alpha(i),'eval_fns',eval_fns,'total_iters',max_total_iters);
+    semilogy(VALS,'linewidth',2);
+    hold on
+end
 
 legend_labels = cell(length(alpha),1);
 for i=1:length(alpha)
-    legend_labels{i} = sprintf('log_{10}(\\alpha) = %s', num2str(log10(alpha(i))));
+    legend_labels{i} = strcat('$\log_{10}(\alpha) = $',sprintf(' %s', num2str(log10(alpha(i)))));
+end
+legend(legend_labels,'interpreter','latex','fontsize',14)
+ax=gca; ax.FontSize=14;
+xlim([0,max_total_iters]);  ylim([nlevel/4,max(VALS)])
+hold off
+savefig(fullfile(dname,'fixed_alpha_search_beta'))
+
+clear -regexp ^re_;
+clear legend_labels;
+
+
+%% fixed beta and search over alpha
+beta = 1:0.5:3;
+
+t = 10000;
+max_total_iters = 5000;
+
+figure
+for i=1:length(beta)
+    [~, ~, ~, VALS] = re_radial_search2(...
+    pd_algo,pd_cost,f,g,kappa,x0y0,eps0,t,'r',exp(-1),'a',exp(beta(i)),'beta',beta(i),'eval_fns',eval_fns,'total_iters',max_total_iters);
+    semilogy(VALS,'linewidth',2);
+    hold on
 end
 
-legend(legend_labels)
-
+legend_labels = cell(length(beta),1);
+for i=1:length(beta)
+    legend_labels{i} = strcat('$\beta = $',sprintf(' %1.1f', beta(i)));
+end
+legend(legend_labels,'interpreter','latex','fontsize',14)
+ax=gca; ax.FontSize=14;
+xlim([0,max_total_iters]);  ylim([nlevel/4,max(VALS)])
 hold off
-
-savefig(fullfile(dname,'fixed_alpha_beta'))
+savefig(fullfile(dname,'search_alpha_fixed_beta'))
 
 clear -regexp ^re_;
 clear legend_labels;
 
 %% compare standard PD with radial-grid restart scheme
 
-beta2 = 2;
+beta2 = 1;
 alpha1 = 1e1;
 beta1 = 1;
 
 t = 100000;
-max_total_iters = 30000;
+max_total_iters = 5000;
 
-figure(2)
+figure
 
 [~, pd_ev_values] = fom_primal_dual_QCBP(...
-    x0, y0, eps0/L_A, 1/(eps0*L_A), max_total_iters, opA, b, nlevel, eval_fns);
+    x0, y0, eps0/L_A, 1/(eps0*L_A), max_total_iters, opA, b, nlevel, eval_fns,@(x) 0);
 
 for i=1:3
     if i == 1
-        [xfin, re_ev_cell, re_ii_cell] = re_radial_search(...
-            pd_algo,pd_cost,f,g,kappa,x0y0,eps0,t,'alpha',alpha1,'beta',beta1,'eval_fns',eval_fns,'total_iters',max_total_iters);
+        [xfin, re_ev_cell, re_ii_cell, VALS] = re_radial_search2(...
+            pd_algo,pd_cost,f,g,kappa,x0y0,eps0,t,'alpha',alpha1,'a',exp(beta1),'beta',beta1,'eval_fns',eval_fns,'total_iters',max_total_iters);
         opt_value = f(xfin) + kappa*g(xfin);
     elseif i == 2
-        [~, re_ev_cell, re_ii_cell] = re_radial_search(...
-            pd_algo,pd_cost,f,g,kappa,x0y0,eps0,t,'beta',beta2,'eval_fns',eval_fns,'total_iters',max_total_iters);
+        [~, re_ev_cell, re_ii_cell, VALS] = re_radial_search2(...
+            pd_algo,pd_cost,f,g,kappa,x0y0,eps0,t,'a',exp(beta2),'beta',beta2,'eval_fns',eval_fns,'total_iters',max_total_iters);
     elseif i == 3
-        [~, re_ev_cell, re_ii_cell] = re_radial_search(...
+        [~, re_ev_cell, re_ii_cell, VALS] = re_radial_search2(...
             pd_algo,pd_cost,f,g,kappa,x0y0,eps0,t,'eval_fns',eval_fns,'total_iters',max_total_iters);
     end
-
-    [re_ev_values, re_ev_indices] = h_extract_re_cell_data(re_ev_cell, re_ii_cell, length(eval_fns));
-    
-    semilogy(re_ev_indices, re_ev_values)
-    
+    semilogy(VALS,'linewidth',2);
     hold on
 end
 
-semilogy([1:max_total_iters], pd_ev_values);
-
-xlabel(x_axis_label)
-ylabel(y_axis_label)
+semilogy([1:max_total_iters], pd_ev_values,'linewidth',2);
 
 legend_labels = cell(3,1);
-legend_labels{1} = sprintf('\\alpha = %s, \\beta = %s', num2str(alpha1), num2str(beta1));
-legend_labels{2} = sprintf('\\alpha-grid, \\beta = %s', num2str(beta2));
-legend_labels{3} = '(\alpha,\beta)-grid';
+legend_labels{1} = strcat('$\alpha = $',sprintf(' %1.1f,', alpha1),' $\beta = $',sprintf(' %1.1f', beta1));
+legend_labels{2} = strcat('$\alpha$-grid,',' $\beta = $',sprintf(' %1.1f', beta2));
+legend_labels{3} = '$(\alpha,\beta)$-grid';
 legend_labels{4} = 'no restarts';
-legend(legend_labels)
+legend(legend_labels,'interpreter','latex','fontsize',14)
+ax=gca; ax.FontSize=14;
+xlim([0,max_total_iters]);  ylim([nlevel/4,max(pd_ev_values)])
 
 hold off
 

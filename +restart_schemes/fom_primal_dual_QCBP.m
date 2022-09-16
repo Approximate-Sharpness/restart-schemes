@@ -41,13 +41,14 @@
 %   - TO DO ...
 %
 
-function [result, ev_values] = fom_primal_dual_cb(x0, y0, tau, sigma, num_iters, opA, b, nlvl, eval_fns)
+function [result, ev_values] = fom_primal_dual_QCBP(x0, y0, tau, sigma, num_iters, opA, b, nlvl, eval_fns, F)
 
 x = x0;
 y = y0;
 Xavg = zeros(size(x0));
 Yavg = zeros(size(y0));
-
+Xout = x0;
+% eval_fns{length(eval_fns)+1} = F;
 ev_values = zeros(length(eval_fns),num_iters);
 
 for j=0:num_iters-1
@@ -58,15 +59,21 @@ for j=0:num_iters-1
     Yavg = (j*Yavg + y)/(j+1);
     
     x = x_next;
+    if F({x,[]})<=F({Xout,[]})
+        Xout=x;
+    end
+    if F({Xavg,[]})<=F({Xout,[]})
+        Xout=Xavg;
+    end
 
     if ~isempty(eval_fns)
         for fidx=1:length(eval_fns)
-            ev_values(fidx,j+1) = eval_fns{fidx}({Xavg,Yavg});
+            ev_values(fidx,j+1) = eval_fns{fidx}({Xout,Yavg});
         end
     end
 end
 
-result = {Xavg,Yavg};
+result = {Xout,y};
 
 end
 
