@@ -37,7 +37,6 @@ f = @(z) norm(z{1},1)/sqrt(s); % objective function
 g = @(z) feasibility_gap(A*z{1}, b, nlevel); % gap function
 kappa = 10;%1e1; % scalar factor for gap function
 
-
 x0 = zeros(N,1);
 y0 = zeros(m,1);
 x0y0 = {x0,y0};
@@ -62,16 +61,17 @@ mkdir(dname);
 
 %% fixed alpha and fixed beta
 beta = 1;
-alpha = logspace(0.2,1.4,7);
+alpha = logspace(0.2,2,10);
+CMAP = linspecer(length(alpha));
 
 t = 10000;
-max_total_iters = 5000;
+max_total_iters = 2500;
 
 figure
 for i=1:length(alpha)
     [~, ~, ~, VALS] = re_radial_search2(...
     pd_algo,pd_cost,f,g,kappa,x0y0,eps0,t,'r',exp(-1),'a',exp(beta),'beta',beta,'alpha',alpha(i),'eval_fns',eval_fns,'total_iters',max_total_iters);
-    semilogy(VALS,'linewidth',2);
+    semilogy(VALS,'linewidth',2,'color',CMAP(i,:));
     hold on
 end
 
@@ -89,16 +89,17 @@ clear -regexp ^re_;
 clear legend_labels;
 
 %% fixed alpha and search over beta
-alpha = logspace(0.2,1.4,7);
+alpha = logspace(0.2,2,10);
+CMAP = linspecer(length(alpha));
 
 t = 10000;
-max_total_iters = 5000;
+max_total_iters = 2500;
 
 figure
 for i=1:length(alpha)
     [~, ~, ~, VALS] = re_radial_search2(...
     pd_algo,pd_cost,f,g,kappa,x0y0,eps0,t,'r',exp(-1),'alpha',alpha(i),'eval_fns',eval_fns,'total_iters',max_total_iters);
-    semilogy(VALS,'linewidth',2);
+    semilogy(VALS,'linewidth',2,'color',CMAP(i,:));
     hold on
 end
 
@@ -120,7 +121,7 @@ clear legend_labels;
 beta = 1:0.5:3;
 
 t = 10000;
-max_total_iters = 5000;
+max_total_iters = 2500;
 
 figure
 for i=1:length(beta)
@@ -150,7 +151,7 @@ alpha1 = 1e1;
 beta1 = 1;
 
 t = 100000;
-max_total_iters = 5000;
+max_total_iters = 2500;
 
 figure
 
