@@ -10,6 +10,9 @@ If you plan to run anything here, you should know that
 
 Runs on MATLAB R2020b without issue. *TO DO: list toolboxes if any are used.*
 
+- linspecer function ([link](https://www.mathworks.com/matlabcentral/fileexchange/42673-beautiful-and-distinguishable-line-colors-colormap)) (simply include `linspecer.m` in your MATLAB userpath)
+- Statistics and Machine Learning Toolbox
+
 ## Running the experiments
 
 Clone or download the repository, and set the MATLAB path to be from the repository root. 
