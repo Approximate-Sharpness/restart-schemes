@@ -41,7 +41,7 @@
 %   - TO DO ...
 %
 
-function [result, ev_values] = fom_primal_dual_cb(x0, y0, tau, sigma, num_iters, opA, b, nlvl, eval_fns)
+function [result, ev_values] = fom_pd_QCBP(x0, y0, tau, sigma, num_iters, opA, b, nlvl, eval_fns)
 
 x = x0;
 y = y0;
