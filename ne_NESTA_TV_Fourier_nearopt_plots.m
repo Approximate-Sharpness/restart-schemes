@@ -154,7 +154,7 @@ end
 
 legend(legend_labels,'interpreter','latex','fontsize',14)
 ax=gca; ax.FontSize=14;
-xlim([0,max_total_iters]);  ylim([nlevel/4,max(pd_ev_values)])
+xlim([0,max_total_iters]);  ylim([nlevel/4,max(NESTA_VALS)])
 
 hold off
 
