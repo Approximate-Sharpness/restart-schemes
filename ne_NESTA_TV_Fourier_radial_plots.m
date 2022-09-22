@@ -100,7 +100,7 @@ clear legend_labels;
 
 %% compare standard NESTA with radial-grid restart scheme
 
-alpha1 = 475;
+alpha1 = 300;
 beta1 = 1;
 beta2 = 1;
 
