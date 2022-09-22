@@ -1,4 +1,4 @@
-function phi = create_radial_order_schedule(t, flags)
+function phi = create_radial_order_schedule(t, a, b, flags)
 
 % - count solutions of n1*n2*... <= tau to generate array of fixed size
 % - maximum number of ni variables is 3, depending on flags
@@ -6,8 +6,8 @@ count = 0;
 tau = 1;
 
 % limit exponents on sharpness grid search
-alpha_lim = floor(abs(log(eps)));
-beta_lim = floor(abs(log(eps)));
+alpha_lim = floor(abs(log(eps)/log(a)));
+beta_lim = floor(abs(log(eps)/log(b)));
 
 while count < t
     count = 0;

@@ -1,7 +1,10 @@
-% RE_RADIAL_SEARCH Restart scheme with radial search for sharpness. 
+% RE_RADIAL_PD Restart scheme with radial search modified for primal-dual. 
 %
-%   Implements a general restart scheme for a first-order optimization 
-%   algorithm. The sharpness constants are specified optionally, where for
+%   Implements a restart scheme modified to accelerate Chambolle-Pock
+%   primal-dual iteration. This is an extension to RE_RADIAL that performs
+%   restarts and tracks the dual variables for each instance.
+%   
+%   The sharpness constants are specified optionally, where for
 %   those not specified, a logarithmic grid search for the unspecified
 %   constants is augmented to the restart scheme. The search uses a radial 
 %   ordering of instance execution. 
@@ -65,65 +68,68 @@
 %   - TO DO ...
 %
 
-function [result, re_ev_values, re_inner_iters] = re_radial_search(...
+function [result, ev_values] = re_radial_pd(...
     fom, C_fom, f, g, kappa, x0, eps0, restarts, varargin)
 
 inp = inputParser;
 validNumScalar = @(x) isnumeric(x) && isscalar(x);
+validScaleScalar = @(x) validNumScalar(x) && x > 1;
+validr = @(x) validNumScalar(x) && x < 1 && x > 0;
 validPositiveScalar = @(x) validNumScalar(x) && x > 0;
-validFnHandles = @(x) iscell(x) && all(cellfun(@(f) isa(f,'function_handle'),x));
 addParameter(inp,'alpha',[],validNumScalar);
+addParameter(inp,'a',exp(1),validScaleScalar);
 addParameter(inp,'beta',[],validNumScalar);
-addParameter(inp,'eval_fns',[],validFnHandles);
+addParameter(inp,'b',exp(1),validScaleScalar);
+addParameter(inp,'r',exp(-1),validr);
 addParameter(inp,'total_iters',[],validPositiveScalar);
 parse(inp,varargin{:});
 
 total_iters = inp.Results.total_iters;
-eval_fns = inp.Results.eval_fns;
+r = inp.Results.r;
+a_exp = inp.Results.a;
+b_exp = inp.Results.b;
 
 grid_flags = [1,1];
 
 if validNumScalar(inp.Results.alpha); grid_flags(1) = 0; end
 if validNumScalar(inp.Results.beta); grid_flags(2) = 0; end
 
-phi = restart_schemes.create_radial_order_schedule(restarts, grid_flags);
+phi = restart_schemes.create_radial_order_schedule(restarts, a_exp, b_exp, grid_flags);
 
 ij_tuples = unique(phi(:,1:2),'rows');
 
-r = exp(-1);
 U = zeros(size(ij_tuples,1),1);
 V = zeros(size(ij_tuples,1),1);
 
 F = @(x) f(x) + kappa*g(x);
 F_min_value = eps0;
 
-re_ev_values = cell(restarts+1,1);
-re_inner_iters = cell(restarts+1,1);
-
-re_ev_values{1} = zeros(length(eval_fns),1);
-for fidx=1:length(eval_fns)
-    re_ev_values{1}(fidx) = eval_fns{fidx}(x0);
-end
-re_inner_iters{1} = 0;
+ev_values = [];
 
 x = x0;
 m = 0;
+
+DUAL={};
+INDX=@(n) (n>0).*2*n +(n==0)+(n<0).*(2*abs(n)+1);
 
 while true
     m = m + 1;
     
     if (m > restarts) || (~isempty(total_iters) && sum(V) > total_iters)
-        re_ev_values = re_ev_values(1:m-1);
-        re_inner_iters = re_inner_iters(1:m-1);
         break
     end
     
     i = phi(m,1); j = phi(m,2); k = phi(m,3);
     
+    if k==1
+        DUAL{INDX(i),j+1}=x0{2};
+    end
+    x{2}=DUAL{INDX(i),j+1};
+        
     ij_ = find_idx_in_array(ij_tuples, [i,j]);
     
-    if grid_flags(1); alpha = exp(i); else; alpha = inp.Results.alpha; end
-    if grid_flags(2); beta = exp(j); else; beta = inp.Results.beta; end
+    if grid_flags(1); alpha = a_exp^i*10; else; alpha = inp.Results.alpha; end
+    if grid_flags(2); beta = b_exp^j; else; beta = inp.Results.beta; end
     
     tol = r^(U(ij_))*eps0;
     
@@ -131,7 +137,7 @@ while true
     
     if grid_flags(2) % if beta grid search is enabled
         if (2*tol) > alpha
-            delta = (2*tol/alpha)^(min(exp(1)/beta,1));
+            delta = (2*tol/alpha)^(min(b_exp/beta,1));
         else
             delta = (2*tol/alpha)^(1/beta);
         end
@@ -141,22 +147,19 @@ while true
     
     delta = max(delta,10*eps); % do not go below machine epsilon
     
-    if (V(ij_)+C_fom(delta, next_tol)) <= k
-        [z, ~] = fom(delta, next_tol, x);
+    cost = C_fom(delta, next_tol, x);
+    if (V(ij_)+cost) <= k
+        [z, values] = fom(delta, next_tol, x, F);
+        ev_values = [ev_values, values];
         
         F_next_value = F(z); % perform argmin
         if F_next_value < F_min_value
             F_min_value = F_next_value;
             x = z;
+            DUAL{INDX(i),j+1}=z{2};
         end
         
-        re_ev_values{m+1} = zeros(length(eval_fns),1);
-        for fidx=1:length(eval_fns)
-            re_ev_values{m+1}(fidx) = eval_fns{fidx}(x);
-        end
-        re_inner_iters{m+1} = C_fom(delta, next_tol);
-        
-        V(ij_) = V(ij_) + C_fom(delta, next_tol);
+        V(ij_) = V(ij_) + cost;
         U(ij_) = U(ij_) + 1;
     end  
 end

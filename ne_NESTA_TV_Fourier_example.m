@@ -4,7 +4,7 @@ clc
 
 import ne_methods.*
 import restart_schemes.fom_nesta
-import restart_schemes.re_radial_search
+import restart_schemes.re_radial
 
 % fix seed for debugging
 %rng(0)
@@ -75,8 +75,8 @@ normx = norm(x,2);
 eval_fns = {f, @(z) norm(z-x,2)/normx};
 
 nesta_cost = @(delta, eps) ceil(4*sqrt(2)*N*delta/eps);
-nesta_algo = @(delta, eps, x_init) fom_nesta(...
-    x_init, opA, c_A, y, opW, L_W, nesta_cost(delta,eps), nlevel, eps/(N*N), []);
+nesta_algo = @(delta, eps, x_init, F) fom_nesta(...
+    x_init, opA, c_A, y, opW, L_W, nesta_cost(delta,eps), nlevel, eps/(N*N), eval_fns, F);
 
 
 %% Plotting parameters
@@ -89,13 +89,11 @@ mkdir(dname);
 
 %% fixed alpha
 
-[result, re_ev_cell, re_ii_cell] = re_radial_search(...
-nesta_algo,nesta_cost,f,g,kappa,z0,eps0,t,'alpha',alpha,'beta',beta,'eval_fns',eval_fns);
-
-[re_ev_values, re_ev_indices] = h_extract_re_cell_data(re_ev_cell, re_ii_cell, length(eval_fns));
+[result, re_ev_values] = re_radial(...
+nesta_algo,nesta_cost,f,g,kappa,z0,eps0,t,'alpha',alpha,'beta',beta);
 
 figure(1)
-semilogy(re_ev_indices, re_ev_values(1,:))
+semilogy(re_ev_values(1,:))
 
 xlabel(x_axis_label)
 ylabel('objective value')
@@ -103,7 +101,7 @@ ylabel('objective value')
 savefig(fullfile(dname,'objective_value'))
 
 figure(2)
-semilogy(re_ev_indices, re_ev_values(2,:))
+semilogy(re_ev_values(2,:))
 
 xlabel(x_axis_label)
 ylabel('relative reconstruction error')

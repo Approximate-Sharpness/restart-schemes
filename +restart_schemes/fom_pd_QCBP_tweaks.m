@@ -49,10 +49,9 @@ Xavg = zeros(size(x0));
 Yavg = zeros(size(y0));
 Xout = x0;
 Yout = y0;
-% eval_fns{length(eval_fns)+1} = F;
 ev_values = zeros(length(eval_fns),num_iters);
 
-FF = @(xx,yy) real(yy(:)'*(opA(xx,0)-b))-nlvl*norm(yy(:));
+G = @(xx,yy) real(yy(:)'*(opA(xx,0)-b))-nlvl*norm(yy(:));
 
 for j=0:num_iters-1
     q = x-tau.*opA(y,1);
@@ -69,10 +68,10 @@ for j=0:num_iters-1
         Xout=Xavg;
     end
     
-    if FF(Xout,y)>=FF(Xout,Yout)
+    if G(Xout,y)>=G(Xout,Yout)
         Yout=y;
     end
-    if FF(Xout,Yavg)>=FF(Xout,Yout)
+    if G(Xout,Yavg)>=G(Xout,Yout)
         Yout=Yavg;
     end
 
