@@ -1,6 +1,6 @@
-function phi = create_radial_order_schedule(t, a, b, flags)
+function phi = create_radial_order_schedule(t, a, b, c1, c2, flags)
 
-% - count solutions of n1*n2*... <= tau to generate array of fixed size
+% - count solutions of n1^c1*n2^c2*n3 <= tau to generate array of fixed size
 % - maximum number of ni variables is 3, depending on flags
 count = 0;
 tau = 1;
@@ -15,11 +15,11 @@ while count < t
     if flags(2); n2end = min(beta_lim,tau); else; n2end = 1; end
     for n1 = 1:n1end
         for n2 = 1:n2end
-            if n1*n2 > tau
+            if (n1^c1)*(n2^c2) > tau
                 break
             end
             for n3 = 1:tau
-                if (n1*n2*n3 > tau)
+                if (n1^c1)*(n2^c2)*n3 > tau
                     break
                 else
                     count = count+1;
@@ -44,11 +44,11 @@ if flags(2); n2end = min(beta_lim,tau); else; n2end = 1; end
 
 for n1 = 1:n1end
     for n2 = 1:n2end
-        if n1*n2 > tau
+        if (n1^c1)*(n2^c2) > tau
             break
         end
         for n3 = 1:tau
-            if n1*n2*n3 > tau
+            if (n1^c1)*(n2^c2)*n3 > tau
                 break
             else
                 sols(idx,:) = [n1-1,n2-1,n3];

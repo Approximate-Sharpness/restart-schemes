@@ -73,14 +73,17 @@ function [result, ev_values] = re_radial_pd(...
 
 inp = inputParser;
 validNumScalar = @(x) isnumeric(x) && isscalar(x);
-validScaleScalar = @(x) validNumScalar(x) && x > 1;
+validScaleScalar_ineq = @(x) validNumScalar(x) && x > 1;
+validScaleScalar_eq = @(x) validNumScalar(x) && x >= 1;
 validr = @(x) validNumScalar(x) && x < 1 && x > 0;
 validPositiveScalar = @(x) validNumScalar(x) && x > 0;
 addParameter(inp,'alpha',[],validNumScalar);
-addParameter(inp,'a',exp(1),validScaleScalar);
+addParameter(inp,'a',exp(1),validScaleScalar_ineq);
 addParameter(inp,'beta',[],validNumScalar);
-addParameter(inp,'b',exp(1),validScaleScalar);
+addParameter(inp,'b',exp(1),validScaleScalar_ineq);
 addParameter(inp,'r',exp(-1),validr);
+addParameter(inp,'c1',2,validScaleScalar_eq);
+addParameter(inp,'c2',2,validScaleScalar_eq);
 addParameter(inp,'total_iters',[],validPositiveScalar);
 parse(inp,varargin{:});
 
@@ -88,13 +91,15 @@ total_iters = inp.Results.total_iters;
 r = inp.Results.r;
 a_exp = inp.Results.a;
 b_exp = inp.Results.b;
+c1 = inp.Results.c1;
+c2 = inp.Results.c2;
 
 grid_flags = [1,1];
 
 if validNumScalar(inp.Results.alpha); grid_flags(1) = 0; end
 if validNumScalar(inp.Results.beta); grid_flags(2) = 0; end
 
-phi = restart_schemes.create_radial_order_schedule(restarts, a_exp, b_exp, grid_flags);
+phi = restart_schemes.create_radial_order_schedule(restarts, a_exp, b_exp, c1, c2, grid_flags);
 
 ij_tuples = unique(phi(:,1:2),'rows');
 

@@ -3,7 +3,6 @@ close all
 clc
 
 import ne_methods.op_matrix_operator 
-import ne_methods.h_extract_re_cell_data
 import restart_schemes.fom_pd_QCBP_tweaks
 import restart_schemes.re_radial_pd
 
@@ -35,7 +34,7 @@ b = A*x + nlevel*e/norm(e);
 
 f = @(z) norm(z{1},1); % objective function
 g = @(z) feasibility_gap(A*z{1}, b, nlevel); % gap function
-kappa = 10;%1e1; % scalar factor for gap function
+kappa = 1e1; % scalar factor for gap function
 
 x0 = zeros(N,1);
 y0 = zeros(m,1);
@@ -64,8 +63,8 @@ beta = 1;
 alpha = logspace(0.2,2,10);
 CMAP = linspecer(length(alpha));
 
-t = 2500;
-max_total_iters = 1500;
+t = 4000;
+max_total_iters = 2000;
 
 figure
 for i=1:length(alpha)
@@ -92,8 +91,8 @@ clear legend_labels;
 alpha = logspace(0.2,2,10);
 CMAP = linspecer(length(alpha));
 
-t = 10000;
-max_total_iters = 5000;
+t = 100000;
+max_total_iters = 3000;
 
 figure
 for i=1:length(alpha)
@@ -122,7 +121,7 @@ beta = 1:0.5:3;
 CMAP = linspecer(length(beta));
 
 t = 10000;
-max_total_iters = 2500;
+max_total_iters = 3000;
 
 figure
 for i=1:length(beta)
@@ -151,8 +150,8 @@ beta2 = 1;
 alpha1 = 1e1;
 beta1 = 1;
 
-t = 10000;
-max_total_iters = 2500;
+t = 12000;
+max_total_iters = 3000;
 
 figure
 

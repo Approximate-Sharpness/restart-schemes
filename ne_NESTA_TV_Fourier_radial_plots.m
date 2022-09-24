@@ -49,7 +49,7 @@ kappa = 0;       % scalar factor for gap function
 % here we project the zero vector onto the constraint set, resulting in z0
 lmult = max(0,norm(y,2)/nlevel-1);
 z0 = (lmult/((lmult+1)*c_A)).*opA(y,1);
-eps0 = N*N;
+eps0 = f(z0);
 
 % relative reconstruction error
 eval_fns = {@(z) norm(z-x,2)};
@@ -72,7 +72,7 @@ beta = 1;
 alpha = logspace(2.3,2.75,10);
 CMAP = linspecer(length(alpha));
 
-t = 10000;
+t = 20000;
 max_total_iters = 2000;
 
 figure
@@ -129,7 +129,7 @@ mu = nlevel.*logspace(1,-2,4);
 
 for i=1:length(mu)
     [~, NESTA_VALS] = fom_nesta(...
-        z0, opA, c_A, y, opW, L_W, max_total_iters, nlevel, mu(i), eval_fns, @(x) 0);
+        z0, opA, c_A, y, opW, L_W, max_total_iters, nlevel, mu(i), eval_fns, f);
     
     semilogy(NESTA_VALS,'linewidth',2);
     
