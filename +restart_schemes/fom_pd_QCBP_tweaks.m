@@ -61,16 +61,11 @@ for j=0:num_iters-1
     Yavg = (j*Yavg + y)/(j+1);
     
     x = x_next;
-    if F({x,[]})<=F({Xout,[]})
-        Xout=x;
-    end
+
     if F({Xavg,[]})<=F({Xout,[]})
         Xout=Xavg;
     end
-    
-    if G(Xout,y)>=G(Xout,Yout)
-        Yout=y;
-    end
+
     if G(Xout,Yavg)>=G(Xout,Yout)
         Yout=Yavg;
     end

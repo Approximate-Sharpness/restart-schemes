@@ -48,8 +48,7 @@ L_W = 2*sqrt(2);
 
 %% Restart scheme parameters
 
-s = sum(abs(opW(x,0)) ~= 0); % sparsity level
-f = @(z) norm(opW(z,0),1)/sqrt(s); % objective function
+f = @(z) norm(opW(z,0),1); % objective function
 g = @(z) 0;      % gap function
 kappa = 0;       % scalar factor for gap function
 

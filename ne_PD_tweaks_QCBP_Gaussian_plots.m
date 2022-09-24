@@ -13,7 +13,7 @@ rng(1)
 %% QCBP problem definition
 
 N = 128;          % s-sparse vector size
-s = 10;           % sparsity
+s = 15;           % sparsity
 m = 60;           % measurements
 nlevel = 1e-6;    % noise level
 
@@ -33,7 +33,7 @@ b = A*x + nlevel*e/norm(e);
 
 %% Restart scheme parameters
 
-f = @(z) norm(z{1},1)/sqrt(s); % objective function
+f = @(z) norm(z{1},1); % objective function
 g = @(z) feasibility_gap(A*z{1}, b, nlevel); % gap function
 kappa = 10;%1e1; % scalar factor for gap function
 
@@ -65,7 +65,7 @@ alpha = logspace(0.2,2,10);
 CMAP = linspecer(length(alpha));
 
 t = 2500;
-max_total_iters = 500;
+max_total_iters = 1500;
 
 figure
 for i=1:length(alpha)
@@ -93,7 +93,7 @@ alpha = logspace(0.2,2,10);
 CMAP = linspecer(length(alpha));
 
 t = 10000;
-max_total_iters = 2500;
+max_total_iters = 5000;
 
 figure
 for i=1:length(alpha)
@@ -157,7 +157,7 @@ max_total_iters = 2500;
 figure
 
 [~, pd_ev_values] = fom_pd_QCBP_tweaks(...
-    x0, y0, eps0/L_A, 1/(eps0*L_A), max_total_iters, opA, b, nlevel, eval_fns,@(x) 0);
+    x0, y0, eps0/L_A, 1/(eps0*L_A), max_total_iters, opA, b, nlevel, eval_fns,@(x) f(x)+kappa*g(x));
 
 for i=1:3
     if i == 1
