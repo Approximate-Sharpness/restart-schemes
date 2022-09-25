@@ -3,56 +3,60 @@ close all
 clc
 
 import ne_methods.op_matrix_operator 
-import restart_schemes.fom_pd_QCBP
+import restart_schemes.fom_pd_SRLASSO
 import restart_schemes.re_radial_pd
 
 % fix seed for debugging
 rng(1)
 
-%% QCBP problem definition
+%% SR-LASSO problem definition
 
-N = 128;          % s-sparse vector size
-s = 15;           % sparsity
-m = 60;           % measurements
-nlevel = 1e-6;    % noise level
+data = load('data/winequality.mat');
+A = data.('features');
+b = data.('labels');
+lambda = 2;
 
-% s-sparse vector
-x = zeros(N,1);
-x(1:s) = randn(s,1);
-x = x(randperm(N));
+m = size(A,1);
+N = size(A,2);
+fprintf('Dimensions of A: %d x %d\n', m, N)
+fprintf('Length of b: %d\n', length(b))
 
-% measurement matrix (Gaussian random)
-A = randn(m,N)/sqrt(m);
+% normalize A by standard score
+A = (A-mean(A,1))./std(A,0,1);
+A = [A ones(m,1)];
 opA = @(z,ad) op_matrix_operator(A,z,ad);
-L_A = norm(A,2); % Lipschitz constant
+L_A = norm(A,2);
 
-% measurement vector
-e = randn(m,1);
-b = A*x + nlevel*e/norm(e);
+% precompute optimal value with CVX
+cvx_precision best
+cvx_begin quiet
+    variable x(N+1)
+    minimize( lambda*norm(x,1) + norm(A*x-b,2) )
+cvx_end
 
 %% Restart scheme parameters
 
-f = @(z) norm(z{1},1); % objective function
-g = @(z) feasibility_gap(A*z{1}, b, nlevel); % gap function
-kappa = 1e1; % scalar factor for gap function
-
-x0 = zeros(N,1);
+x0 = zeros(N+1,1);
 y0 = zeros(m,1);
 x0y0 = {x0,y0};
-opt_value = f({x}) + kappa.*g({x});
-eps0 = f(x0y0) + kappa.*g(x0y0);
 
-eval_fns = {@(z) norm(z{1}-x,2)};
+f = @(z) lambda*norm(z{1},1) + norm(opA(z{1},0)-b,2);
+g = @(z) 0;
+kappa = 0;
 
-pd_cost = @(delta, eps, xy_init) ceil(2*L_A*(kappa+norm(xy_init{2}))*delta/eps);
-pd_algo = @(delta, eps, xy_init,F) fom_pd_QCBP(...
-    xy_init{1}, xy_init{2}, delta/((kappa+norm(xy_init{2}))*L_A), (kappa+norm(xy_init{2}))/(delta*L_A), pd_cost(delta,eps,xy_init), opA, b, nlevel, eval_fns, F);
+eps0 = f({x0});
 
+eval_fns = {f};
+
+pd_cost = @(delta, eps, xy_init) ceil(2*L_A*delta/eps);
+pd_algo = @(delta, eps, xy_init, F) fom_pd_SRLASSO(...
+    xy_init{1}, xy_init{2}, delta/L_A, 1/(delta*L_A), pd_cost(delta,eps), opA, b, lambda, eval_fns, F);
 
 %% Plotting parameters
 
 % x_axis_label = 'total iterations';
 % y_axis_label = 'reconstruction error';
+ylim_low = 1e-10;
 
 [~,fname,~] = fileparts(mfilename);
 dname = sprintf('results/%s/', fname);
@@ -70,7 +74,7 @@ figure
 for i=1:length(alpha)
     [~, VALS] = re_radial_pd(...
     pd_algo,pd_cost,f,g,kappa,x0y0,eps0,t,'r',exp(-1),'a',exp(beta),'beta',beta,'alpha',alpha(i),'total_iters',max_total_iters);
-    semilogy(VALS,'linewidth',2,'color',CMAP(i,:));
+    semilogy(VALS-cvx_optval,'linewidth',2,'color',CMAP(i,:));
     hold on
 end
 
@@ -80,7 +84,7 @@ for i=1:length(alpha)
 end
 legend(legend_labels,'interpreter','latex','fontsize',14)
 ax=gca; ax.FontSize=14;
-xlim([0,max_total_iters]);  ylim([nlevel/4,max(VALS)])
+xlim([0,max_total_iters]);  ylim([ylim_low,max(VALS)])
 hold off
 savefig(fullfile(dname,'fixed_alpha_fixed_beta'))
 
@@ -98,7 +102,7 @@ figure
 for i=1:length(alpha)
     [~, VALS] = re_radial_pd(...
     pd_algo,pd_cost,f,g,kappa,x0y0,eps0,t,'r',exp(-1),'alpha',alpha(i),'total_iters',max_total_iters);
-    semilogy(VALS,'linewidth',2,'color',CMAP(i,:));
+    semilogy(VALS-cvx_optval,'linewidth',2,'color',CMAP(i,:));
     hold on
 end
 
@@ -108,7 +112,7 @@ for i=1:length(alpha)
 end
 legend(legend_labels,'interpreter','latex','fontsize',14)
 ax=gca; ax.FontSize=14;
-xlim([0,max_total_iters]);  ylim([nlevel/4,max(VALS)])
+xlim([0,max_total_iters]);  ylim([ylim_low,max(VALS)])
 hold off
 savefig(fullfile(dname,'fixed_alpha_search_beta'))
 
@@ -127,7 +131,7 @@ figure
 for i=1:length(beta)
     [~, VALS] = re_radial_pd(...
     pd_algo,pd_cost,f,g,kappa,x0y0,eps0,t,'r',exp(-1),'a',exp(beta(i)),'beta',beta(i),'total_iters',max_total_iters);
-    semilogy(VALS,'linewidth',2','color',CMAP(i,:));
+    semilogy(VALS-cvx_optval,'linewidth',2','color',CMAP(i,:));
     hold on
 end
 
@@ -137,7 +141,7 @@ for i=1:length(beta)
 end
 legend(legend_labels,'interpreter','latex','fontsize',14)
 ax=gca; ax.FontSize=14;
-xlim([0,max_total_iters]);  ylim([nlevel/4,max(VALS)])
+xlim([0,max_total_iters]);  ylim([ylim_low,max(VALS)])
 hold off
 savefig(fullfile(dname,'search_alpha_fixed_beta'))
 
@@ -155,8 +159,8 @@ max_total_iters = 3000;
 
 figure
 
-[~, pd_ev_values] = fom_pd_QCBP(...
-    x0, y0, eps0/L_A, 1/(eps0*L_A), max_total_iters, opA, b, nlevel, eval_fns,@(x) f(x)+kappa*g(x));
+[~, pd_ev_values] = fom_pd_SRLASSO(...
+    x0, y0, eps0/L_A, 1/(eps0*L_A), max_total_iters, opA, b, lambda, eval_fns, f);
 
 for i=1:3
     if i == 1
@@ -170,11 +174,11 @@ for i=1:3
         [~, VALS] = re_radial_pd(...
             pd_algo,pd_cost,f,g,kappa,x0y0,eps0,t,'total_iters',max_total_iters);
     end
-    semilogy(VALS,'linewidth',2);
+    semilogy(VALS-cvx_optval,'linewidth',2);
     hold on
 end
 
-semilogy(pd_ev_values,'linewidth',2);
+semilogy(pd_ev_values-cvx_optval,'linewidth',2);
 
 legend_labels = cell(3,1);
 legend_labels{1} = strcat('$\alpha = $',sprintf(' %1.1f,', alpha1),' $\beta = $',sprintf(' %1.1f', beta1));
@@ -183,20 +187,10 @@ legend_labels{3} = '$(\alpha,\beta)$-grid';
 legend_labels{4} = 'no restarts';
 legend(legend_labels,'interpreter','latex','fontsize',14)
 ax=gca; ax.FontSize=14;
-xlim([0,max_total_iters]);  ylim([nlevel/4,max(pd_ev_values)])
+xlim([0,max_total_iters]);  ylim([ylim_low,max(pd_ev_values)])
 
 hold off
 
 savefig(fullfile(dname,'tweaks_pd_comparison'))
 
 clear -regexp ^VALS;
-
-
-
-%% Additional functions specific to the experiment
-
-% Feasibility gap function handle
-function out = feasibility_gap(z, center, rad)
-dist = norm(z-center,2);
-out = max(dist-rad,0);
-end
