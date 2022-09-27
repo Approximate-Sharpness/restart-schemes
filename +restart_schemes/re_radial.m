@@ -74,9 +74,9 @@ validScaleScalar_ineq = @(x) validNumScalar(x) && x > 1;
 validScaleScalar_eq = @(x) validNumScalar(x) && x >= 1;
 validr = @(x) validNumScalar(x) && x < 1 && x > 0;
 validPositiveScalar = @(x) validNumScalar(x) && x > 0;
-addParameter(inp,'alpha',[],validNumScalar);
+addParameter(inp,'alpha',[],validPositiveScalar);
 addParameter(inp,'a',exp(1),validScaleScalar_ineq);
-addParameter(inp,'beta',[],validNumScalar);
+addParameter(inp,'beta',[],validScaleScalar_eq);
 addParameter(inp,'b',exp(1),validScaleScalar_ineq);
 addParameter(inp,'r',exp(-1),validr);
 addParameter(inp,'c1',2,validScaleScalar_eq);
@@ -122,7 +122,7 @@ while true
     
     ij_ = find_idx_in_array(ij_tuples, [i,j]);
     
-    if grid_flags(1); alpha = a_exp^i*10; else; alpha = inp.Results.alpha; end
+    if grid_flags(1); alpha = a_exp^i; else; alpha = inp.Results.alpha; end
     if grid_flags(2); beta = b_exp^j; else; beta = inp.Results.beta; end
     
     tol = r^(U(ij_))*eps0;

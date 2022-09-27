@@ -39,7 +39,6 @@ kappa = 1e1; % scalar factor for gap function
 x0 = zeros(N,1);
 y0 = zeros(m,1);
 x0y0 = {x0,y0};
-opt_value = f({x}) + kappa.*g({x});
 eps0 = f(x0y0) + kappa.*g(x0y0);
 
 eval_fns = {@(z) norm(z{1}-x,2)};
@@ -92,7 +91,7 @@ alpha = logspace(0.2,2,10);
 CMAP = linspecer(length(alpha));
 
 t = 100000;
-max_total_iters = 3000;
+max_total_iters = 5000;
 
 figure
 for i=1:length(alpha)
@@ -150,8 +149,8 @@ beta2 = 1;
 alpha1 = 1e1;
 beta1 = 1;
 
-t = 12000;
-max_total_iters = 3000;
+t = 20000;
+max_total_iters = 5000;
 
 figure
 
@@ -160,9 +159,8 @@ figure
 
 for i=1:3
     if i == 1
-        [xfin, VALS] = re_radial_pd(...
+        [~, VALS] = re_radial_pd(...
             pd_algo,pd_cost,f,g,kappa,x0y0,eps0,t,'alpha',alpha1,'a',exp(beta1),'beta',beta1,'total_iters',max_total_iters);
-        opt_value = f(xfin) + kappa*g(xfin);
     elseif i == 2
         [~, VALS] = re_radial_pd(...
             pd_algo,pd_cost,f,g,kappa,x0y0,eps0,t,'a',exp(beta2),'beta',beta2,'total_iters',max_total_iters);
@@ -187,7 +185,7 @@ xlim([0,max_total_iters]);  ylim([nlevel/4,max(pd_ev_values)])
 
 hold off
 
-savefig(fullfile(dname,'tweaks_pd_comparison'))
+savefig(fullfile(dname,'pd_comparison'))
 
 clear -regexp ^VALS;
 
