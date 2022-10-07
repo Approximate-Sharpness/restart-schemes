@@ -1,4 +1,4 @@
-% RE_RADIAL_SEARCH Restart scheme with radial search for sharpness. 
+% RE_RADIAL Generic restart scheme with radial search. 
 %
 %   Implements a general restart scheme for a first-order optimization 
 %   algorithm. The sharpness constants are specified optionally, where for
@@ -65,46 +65,52 @@
 %   - TO DO ...
 %
 
-function [result, re_ev_values, re_inner_iters] = re_radial_search(...
+function [result, ev_values] = re_radial(...
     fom, C_fom, f, g, kappa, x0, eps0, restarts, varargin)
 
 inp = inputParser;
 validNumScalar = @(x) isnumeric(x) && isscalar(x);
+validScaleScalar_ineq = @(x) validNumScalar(x) && x > 1;
+validScaleScalar_eq = @(x) validNumScalar(x) && x >= 1;
+validr = @(x) validNumScalar(x) && x < 1 && x > 0;
 validPositiveScalar = @(x) validNumScalar(x) && x > 0;
-validFnHandles = @(x) iscell(x) && all(cellfun(@(f) isa(f,'function_handle'),x));
-addParameter(inp,'alpha',[],validNumScalar);
-addParameter(inp,'beta',[],validNumScalar);
-addParameter(inp,'eval_fns',[],validFnHandles);
+addParameter(inp,'alpha',[],validPositiveScalar);
+addParameter(inp,'alpha0',1,validPositiveScalar);
+addParameter(inp,'a',exp(1),validScaleScalar_ineq);
+addParameter(inp,'beta',[],validScaleScalar_eq);
+addParameter(inp,'beta0',1,validScaleScalar_eq);
+addParameter(inp,'b',exp(1),validScaleScalar_ineq);
+addParameter(inp,'r',exp(-1),validr);
+addParameter(inp,'c1',2,validScaleScalar_eq);
+addParameter(inp,'c2',2,validScaleScalar_eq);
 addParameter(inp,'total_iters',[],validPositiveScalar);
 parse(inp,varargin{:});
 
 total_iters = inp.Results.total_iters;
-eval_fns = inp.Results.eval_fns;
+r = inp.Results.r;
+a_exp = inp.Results.a;
+b_exp = inp.Results.b;
+c1 = inp.Results.c1;
+c2 = inp.Results.c2;
+alpha0 = inp.Results.alpha0;
+beta0 = inp.Results.beta0;
 
 grid_flags = [1,1];
 
 if validNumScalar(inp.Results.alpha); grid_flags(1) = 0; end
 if validNumScalar(inp.Results.beta); grid_flags(2) = 0; end
 
-phi = restart_schemes.create_radial_order_schedule(restarts, grid_flags);
+phi = restart_schemes.create_radial_order_schedule(restarts, a_exp, b_exp, c1, c2, grid_flags);
 
 ij_tuples = unique(phi(:,1:2),'rows');
 
-r = exp(-1);
 U = zeros(size(ij_tuples,1),1);
 V = zeros(size(ij_tuples,1),1);
 
 F = @(x) f(x) + kappa*g(x);
 F_min_value = eps0;
 
-re_ev_values = cell(restarts+1,1);
-re_inner_iters = cell(restarts+1,1);
-
-re_ev_values{1} = zeros(length(eval_fns),1);
-for fidx=1:length(eval_fns)
-    re_ev_values{1}(fidx) = eval_fns{fidx}(x0);
-end
-re_inner_iters{1} = 0;
+ev_values = [];
 
 x = x0;
 m = 0;
@@ -113,8 +119,6 @@ while true
     m = m + 1;
     
     if (m > restarts) || (~isempty(total_iters) && sum(V) > total_iters)
-        re_ev_values = re_ev_values(1:m-1);
-        re_inner_iters = re_inner_iters(1:m-1);
         break
     end
     
@@ -122,8 +126,8 @@ while true
     
     ij_ = find_idx_in_array(ij_tuples, [i,j]);
     
-    if grid_flags(1); alpha = exp(i); else; alpha = inp.Results.alpha; end
-    if grid_flags(2); beta = exp(j); else; beta = inp.Results.beta; end
+    if grid_flags(1); alpha = alpha0*a_exp^i; else; alpha = inp.Results.alpha; end
+    if grid_flags(2); beta = beta0*b_exp^j; else; beta = inp.Results.beta; end
     
     tol = r^(U(ij_))*eps0;
     
@@ -131,7 +135,7 @@ while true
     
     if grid_flags(2) % if beta grid search is enabled
         if (2*tol) > alpha
-            delta = (2*tol/alpha)^(min(exp(1)/beta,1));
+            delta = (2*tol/alpha)^(min(b_exp/beta,1));
         else
             delta = (2*tol/alpha)^(1/beta);
         end
@@ -141,8 +145,10 @@ while true
     
     delta = max(delta,10*eps); % do not go below machine epsilon
     
-    if (V(ij_)+C_fom(delta, next_tol)) <= k
-        [z, ~] = fom(delta, next_tol, x);
+    cost = C_fom(delta, next_tol);
+    if (V(ij_)+cost) <= k
+        [z, values] = fom(delta, next_tol, x, F);
+        ev_values = [ev_values,values];
         
         F_next_value = F(z); % perform argmin
         if F_next_value < F_min_value
@@ -150,13 +156,7 @@ while true
             x = z;
         end
         
-        re_ev_values{m+1} = zeros(length(eval_fns),1);
-        for fidx=1:length(eval_fns)
-            re_ev_values{m+1}(fidx) = eval_fns{fidx}(x);
-        end
-        re_inner_iters{m+1} = C_fom(delta, next_tol);
-        
-        V(ij_) = V(ij_) + C_fom(delta, next_tol);
+        V(ij_) = V(ij_) + cost;
         U(ij_) = U(ij_) + 1;
     end  
 end
@@ -168,7 +168,7 @@ end
 
 
 function idx = find_idx_in_array(A, target_row)
-% finds the right row for U and V given a tuple (i,j,k)
+% finds the right row for U and V given an index tuple (i,j)
 n = size(A,1);
 for i=1:n
     if all(A(i,:) == target_row)

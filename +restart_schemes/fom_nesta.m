@@ -16,6 +16,8 @@
 %   mu        - smoothing parameter
 %   eval_fns  - cell array of function handles to evaluate on each iterate
 %               (assign the empty array [] to disable)
+%   F         - a function to use as the argmin over the iterates for
+%               eval_fns and the final output (see notes).
 %
 % OUTPUT
 % ======
@@ -24,6 +26,9 @@
 %
 % NOTES
 % =====
+%   
+%   Defining opA and opW
+%   --------------------
 %   To use NESTA correctly, the linear operator A must satisfy A*A' = c.*I 
 %   where I is the identity map and c > 0 is a constant. In other words,
 %   representing A as a matrix, its rows are mutually orthonormal up to
@@ -40,15 +45,27 @@
 %   Additionally, this algorithm is implemented to handle complex-valued
 %   data, so opA can be say, the discrete Fourier transform.
 %
+%   The output and evaluations
+%   --------------------------
+%   An intermediate variable 'xout' is defined to be the argmin of F over 
+%   all previous iterates and the current iterate x. Here xout is 
+%   recomputed at each iteration and is used as input to eval_fns. The 
+%   output iterate 'result' is the final xout vector.
+%
+%
 % REFERENCES
 % ==========
 %   - TO DO ...
 %
 
-function [result, ev_values] = fom_nesta(z0, opA, c_A, b, opW, L_W, num_iters, nlvl, mu, eval_fns)
+function [result, ev_values] = fom_nesta(z0, opA, c_A, b, opW, L_W, num_iters, nlvl, mu, eval_fns, F)
 
 z = z0;
 q_v = z0;
+
+xout = z0;
+
+F_min = F(xout);
 
 ev_values = zeros(length(eval_fns),num_iters);
 
@@ -64,10 +81,16 @@ for n=0:num_iters-1
     
     x = lam/((lam+1)*c_A)*opA(dy,1) + q;
     
+    % argmin over inner iterations
+    F_eval_x = F(x);
+    if F_eval_x < F_min
+        xout = x;
+        F_min = F_eval_x;
+    end
     
     if ~isempty(eval_fns)
         for fidx=1:length(eval_fns)
-            ev_values(fidx,n+1) = eval_fns{fidx}(x);
+            ev_values(fidx,n+1) = eval_fns{fidx}(xout);
         end
     end
     
@@ -86,6 +109,6 @@ for n=0:num_iters-1
     z = tau*v+(1-tau)*x;
 end
 
-result = x;
+result = xout;
 
 end

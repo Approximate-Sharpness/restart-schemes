@@ -41,10 +41,7 @@
 %   - TO DO ...
 %
 
-function [result, ev_values] = fom_primal_dual_SRLASSO(x0, y0, tau, sigma, opA, b, lambda, num_iters, eval_fns)
-
-F = @(xx) lambda*norm(xx,1) + norm(opA(xx,0)-b,2);
-%G = @(xx,yy) real(yy(:)'*(opA(xx,0)-b))-nlvl*norm(yy(:));
+function [result, ev_values] = fom_pd_SRLASSO(x0, y0, tau, sigma, num_iters, opA, b, lambda, eval_fns, F)
 
 x = x0;
 y = y0;
@@ -54,31 +51,25 @@ Xout = x0;
 Yout = y0;
 ev_values = zeros(length(eval_fns),num_iters);
 
+G = @(xx,yy) real(yy(:)'*(opA(xx,0)-b))+max(0,(norm(yy,2)>1)*Inf);
+
 for j=0:num_iters-1
     xshift = x-tau.*opA(y,1);
     x_next = max(abs(xshift)-tau*lambda,0).*sign(xshift);
-    yshift = y + sigma.*opA(2*x_next - x,0) - sigma.*y;
-    norm(xshift)
+    yshift = y + sigma.*opA(2*x_next - x,0) - sigma.*b;
     y = min(1,1/norm(yshift,2)).*yshift;
     Xavg = (j.*Xavg + x_next)/(j+1);
     Yavg = (j.*Yavg + y)/(j+1);
     
     x = x_next;
-    
-    % select Xout from x or Xavg, by argmin with respect to F
-    if F(x) < F(Xout)
-        Xout=x;
-    end
-    if F(Xavg) < F(Xout)
+
+    if F({Xavg,[]})<=F({Xout,[]})
         Xout=Xavg;
     end
-    % select Yout from y or Yavg, by argmin with respect to G and Xout
-    %if G(Xout,y) > G(Xout,Yout)
-    %    Yout=y;
-    %end
-    %if G(Xout,Yavg) > G(Xout,Yout)
-    %    Yout=Yavg;
-    %end
+
+    if G(Xout,Yavg)>=G(Xout,Yout)
+        Yout=Yavg;
+    end
     
     % evaluate Xout and Yout at the user-defined cell of functions
     if ~isempty(eval_fns)

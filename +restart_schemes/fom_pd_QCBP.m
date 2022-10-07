@@ -41,14 +41,17 @@
 %   - TO DO ...
 %
 
-function [result, ev_values] = fom_primal_dual_cb(x0, y0, tau, sigma, num_iters, opA, b, nlvl, eval_fns)
+function [result, ev_values] = fom_pd_QCBP_tweaks(x0, y0, tau, sigma, num_iters, opA, b, nlvl, eval_fns, F)
 
 x = x0;
 y = y0;
 Xavg = zeros(size(x0));
 Yavg = zeros(size(y0));
-
+Xout = x0;
+Yout = y0;
 ev_values = zeros(length(eval_fns),num_iters);
+
+G = @(xx,yy) real(yy(:)'*(opA(xx,0)-b))-nlvl*norm(yy(:));
 
 for j=0:num_iters-1
     q = x-tau.*opA(y,1);
@@ -59,14 +62,22 @@ for j=0:num_iters-1
     
     x = x_next;
 
+    if F({Xavg,[]})<=F({Xout,[]})
+        Xout=Xavg;
+    end
+
+    if G(Xout,Yavg)>=G(Xout,Yout)
+        Yout=Yavg;
+    end
+
     if ~isempty(eval_fns)
         for fidx=1:length(eval_fns)
-            ev_values(fidx,j+1) = eval_fns{fidx}({Xavg,Yavg});
+            ev_values(fidx,j+1) = eval_fns{fidx}({Xout,Yavg});
         end
     end
 end
 
-result = {Xavg,Yavg};
+result = {Xout,Yout};
 
 end
 
