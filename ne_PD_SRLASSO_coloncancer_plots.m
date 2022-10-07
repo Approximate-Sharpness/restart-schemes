@@ -16,6 +16,20 @@ A = data.('features');
 b = data.('labels');
 lambda = 2.75;
 
+% label corruption
+%cor_rate = 0.0;
+%for i=1:length(b)
+%    if (rand < cor_rate)
+%        b(i) = -b(i);
+%    end
+%end
+
+% drop data points
+drop_rate = 0.25;
+drop_mask = rand(length(b),1) > drop_rate;
+A = A(drop_mask,:);
+b = b(drop_mask);
+
 m = size(A,1);
 N = size(A,2);
 fprintf('Dimensions of A: %d x %d\n', m, N)

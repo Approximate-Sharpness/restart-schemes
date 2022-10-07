@@ -14,7 +14,21 @@ rng(1)
 data = load('data/leu.mat');
 A = data.('features');
 b = data.('labels');
-lambda = 3.25;
+lambda = 0.01;
+
+% label corruption
+cor_rate = 0.05;
+for i=1:length(b)
+    if (rand < cor_rate)
+        b(i) = -b(i);
+    end
+end
+
+% drop data points
+%drop_rate = 0.25;
+%drop_mask = rand(length(b),1) > drop_rate;
+%A = A(drop_mask,:);
+%b = b(drop_mask);
 
 m = size(A,1);
 N = size(A,2);
@@ -72,9 +86,9 @@ mkdir(dname);
 
 %% compare standard PD with radial-grid restart scheme
 
-alpha3 = 1;
+alpha3 = 10;
 beta2 = 1;
-alpha1 = 1;
+alpha1 = 10;
 beta1 = 1;
 
 t = 120000;

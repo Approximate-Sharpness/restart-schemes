@@ -14,6 +14,19 @@ rng(1)
 data = load('data/winequality.mat');
 A = data.('features');
 b = data.('labels');
+
+% add noise to measurements
+%nlevel = 1;
+%e = randn(length(b),1);
+%e = nlevel*e/norm(e);
+%b = b + e;
+
+% drop rows
+rate = 0.25;
+samp = rand(length(b),1);
+A = A(samp>rate,:);
+b = b(samp>rate,:);
+
 lambda = 4;
 
 m = size(A,1);
