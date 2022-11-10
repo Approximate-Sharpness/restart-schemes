@@ -13,24 +13,29 @@
 %   f      - scalar objective function
 %   g      - scalar feasibility gap function
 %   kappa  - feasibility gap parameter
-%   x0     - initial guess 
+%   x0     - initial guess
 %   eps0   - an upper bound for f(x0) + kappa*g(x0)
 %   restarts    - number of restarts to perform
 %
 % OPTIONAL PARAMETERS
 % ===================
-%   alpha       - scaling sharpness constant
-%   beta        - exponent sharpness constant
-%   eval_fns    - cell array of function handles to evaluate on each 
-%                 iterate
+%   alpha       - scaling sharpness parameter (defaults to grid search)
+%   alpha0      - center for alpha grid search (defaults to 1)
+%   a           - base for alpha points
+%   beta        - exponent sharpness parameter (defaults to grid search)
+%   beta0       - center for beta grid search (defaults to 1)
+%   b           - base for beta points
+%   r           - decay parameter (defaults to exp(-1))
+%   c1          - alpha grid search schedule parameter (defaults to 2)
+%   c2          - beta grid search schedule parameter (defaults to 2)
 %   total_iters - stop after at some number of total iterations are 
 %                 performed
 %
 % OUTPUT
 % ======
 %   result         - final iterate minimizing f + kappa*g
-%   re_ev_values   - evaluation of eval_fns at each executed restart
-%   re_inner_iters - number of inner iterations at each executed restart
+%   re_ev_values   - evaluation of eval_fns at each executed restart if
+%                    defined for fom
 %
 % NOTES
 % =====
@@ -52,17 +57,13 @@
 %   iterations needed for 'fom' to achieve precision eps with initial
 %   distance delta.
 %   
-%   See [TO DO ... / REF] for examples of how to define 'fom' and 'C_fom'.
-%
+%   The numerical experiments provided with this code give examples for how
+%   to define C_fom and fom.
 %   
 %   Note that the radial ordering implementation here restricts the range
 %   of which sharpness constants are considered, with exponent of maximum
-%   absolute value equal to floor(abs(log(eps))), where eps is machine
-%   epsilon.
-%
-% REFERENCES
-% ==========
-%   - TO DO ...
+%   absolute value proportional to floor(abs(log(eps))), where eps is 
+%   machine epsilon.
 %
 
 function [result, ev_values] = re_radial(...

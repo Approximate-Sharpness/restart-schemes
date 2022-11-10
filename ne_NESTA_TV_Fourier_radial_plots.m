@@ -54,7 +54,7 @@ eps0 = f(z0);
 % relative reconstruction error
 eval_fns = {@(z) norm(z-x,2)};
 
-nesta_cost = @(delta, eps) ceil(4*sqrt(2)*N*delta/eps);
+nesta_cost = @(delta, eps) ceil(8*N*delta/eps);
 nesta_algo = @(delta, eps, x_init, F) fom_nesta(...
     x_init, opA, c_A, y, opW, L_W, nesta_cost(delta,eps), nlevel, eps/(N*N), eval_fns, F);
 

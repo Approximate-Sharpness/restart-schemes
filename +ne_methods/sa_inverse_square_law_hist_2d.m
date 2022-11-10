@@ -1,4 +1,4 @@
-% Inverse square-law sampling for the Fourier inverse problem
+% Inverse square-law sampling for the 2D Fourier inverse problem
 
 function hist = sa_inverse_square_law_hist_2d(N,alpha)
 

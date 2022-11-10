@@ -15,6 +15,8 @@
 %   nlvl      - noise level
 %   eval_fns  - cell array of function handles to evaluate on each iterate
 %               (assign the empty array [] to disable)
+%   F         - a function to use as the argmin over the iterates for
+%               eval_fns and the final output (see NOTES).
 %
 % OUTPUT
 % ======
@@ -26,6 +28,8 @@
 %
 % NOTES
 % =====
+%   Defining opA
+%   ------------
 %   The input opA should be a function handle, with the first argument a
 %   compatible input and the second argument a boolean flag to enable using
 %   the transpose of the linear operator (when the flag is nonzero).
@@ -36,9 +40,19 @@
 %   Additionally, this algorithm is implemented to handle complex-valued
 %   data, so opA can be say, the discrete Fourier transform.
 %
+%   The output and evaluations
+%   --------------------------
+%   An intermediate variable 'Xout' is defined to be the argmin of F over 
+%   all previous iterates and the current iterate x. Here Xout is 
+%   recomputed at each iteration and is used as input to eval_fns. The 
+%   output iterate 'result' is the final Xout vector. The variable Yout is
+%   similar except we instead take the argmax over the Lagrangian
+%   evaluted at Xout and Yavg.
+%
 % REFERENCES
 % ==========
-%   - TO DO ...
+%   - Chapter 7.5 of "Compressive Imaging: Structure, Sampling, Learning", 
+%     Adcock & Hansen (2021). doi:10.1017/9781108377447
 %
 
 function [result, ev_values] = fom_pd_QCBP_tweaks(x0, y0, tau, sigma, num_iters, opA, b, nlvl, eval_fns, F)

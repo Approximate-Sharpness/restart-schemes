@@ -2,6 +2,18 @@ clear
 close all
 clc
 
+% Comparison of selecting grid search parameters c1 and c2, more clearly
+% indicating the sensitivity of choosing alpha0.
+%
+% There are segments of this code that have comments of the form
+% 
+% ... %%%%% <N> COMMENT ALL BUT ONE
+%
+% N here is an index corresponding to the desired plot to generate.
+% Essentially this script needs to be run with different lines commented
+% out to generate different plots. For example, to generate plot N = 2,
+% comment out all lines containing the above comment with N ~= 2.
+
 import ne_methods.op_matrix_operator 
 import restart_schemes.fom_pd_QCBP
 import restart_schemes.re_radial_pd
@@ -65,8 +77,8 @@ t = 50000;
 max_total_iters = 2000;
 
 % grid search alpha
-%alpha0 = 2*sqrt(m);
-alpha0 = sqrt(m);
+%alpha0 = 2*sqrt(m); %%%%% <1> COMMENT ALL BUT ONE
+alpha0 = sqrt(m);   %%%%% <2> COMMENT ALL BUT ONE
 beta = 1;
 c1 = linspace(1,10,10);
 CMAP1 = linspecer(length(c1));
@@ -87,8 +99,8 @@ legend(legend_labels,'interpreter','latex','fontsize',14)
 ax=gca; ax.FontSize=14;
 xlim([0,max_total_iters]);  ylim([nlevel/4,10])
 hold off
-%savefig(fullfile(dname,sprintf('c1_comparison_bad_alpha0',c1(i))))
-savefig(fullfile(dname,sprintf('c1_comparison_good_alpha0',c1(i))))
+%savefig(fullfile(dname,sprintf('c1_comparison_bad_alpha0',c1(i))))  %%%%% <1> COMMENT ALL BUT ONE
+savefig(fullfile(dname,sprintf('c1_comparison_good_alpha0',c1(i)))) %%%%% <2> COMMENT ALL BUT ONE
 
 
 %% Additional functions specific to the experiment

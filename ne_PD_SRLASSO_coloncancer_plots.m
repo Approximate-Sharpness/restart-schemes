@@ -2,6 +2,9 @@ clear
 close all
 clc
 
+% Performance of various restart schemes with different approximate 
+% sharpness parameters on a sparse recovery problem.
+
 import ne_methods.op_matrix_operator 
 import restart_schemes.fom_pd_SRLASSO
 import restart_schemes.re_radial_pd
@@ -14,21 +17,25 @@ rng(1)
 data = load('data/colon-cancer.mat');
 A = data.('features');
 b = data.('labels');
-lambda = 2.75;
+lambda = 0.5;
+
+%%%%% BELOW NEEDS TO BE UNCOMMENTED TO ENABLE LABEL CORRUPTION %%%%%
 
 % label corruption
-%cor_rate = 0.0;
+%cor_rate = 0.2;
 %for i=1:length(b)
 %    if (rand < cor_rate)
 %        b(i) = -b(i);
 %    end
 %end
 
+%%%%% BELOW NEEDS TO BE UNCOMMENTED TO REDUCE DATA POINTS %%%%%
+
 % drop data points
-drop_rate = 0.25;
-drop_mask = rand(length(b),1) > drop_rate;
-A = A(drop_mask,:);
-b = b(drop_mask);
+%drop_rate = 0.25;
+%drop_mask = rand(length(b),1) > drop_rate;
+%A = A(drop_mask,:);
+%b = b(drop_mask);
 
 m = size(A,1);
 N = size(A,2);
@@ -50,6 +57,10 @@ x0y0 = {x0,y0};
 f = @(z) lambda*norm(z{1},1) + norm(opA(z{1},0)-b,2);
 g = @(z) 0;
 kappa = 0;
+alpha0 = 0.25;
+beta0 = 2.5;
+c1 = 2;
+c2 = 2;
 
 eps0 = f({x0});
 
@@ -58,6 +69,8 @@ eval_fns = {f};
 pd_cost = @(delta, eps, xy_init) ceil(2*L_A*delta/eps);
 pd_algo = @(delta, eps, xy_init, F) fom_pd_SRLASSO(...
     xy_init{1}, xy_init{2}, delta/L_A, 1/(delta*L_A), pd_cost(delta,eps), opA, b, lambda, eval_fns, F);
+
+scheme = @(t,varargin) re_radial_pd(pd_algo,pd_cost,f,g,kappa,x0y0,eps0,t,'alpha0',alpha0,'beta0',beta0,'c1',c1,'c2',c2,varargin{:});
 
 %% Precompute optimal value with CVX
 
@@ -76,23 +89,125 @@ fprintf('CVX solution has %d coefficients of absolute value > 1e-5\n',s)
 
 % x_axis_label = 'total iterations';
 % y_axis_label = 'reconstruction error';
-ylim_low = 1;
 
 [~,fname,~] = fileparts(mfilename);
 dname = sprintf('results/%s/', fname);
 mkdir(dname);
 
+%% fixed alpha and fixed beta
+beta = 1;
+alpha = logspace(0,2,11);
+CMAP = linspecer(length(alpha));
 
+t = 10000;
+total_iters = 5000;
+ylim_low = 1;
+
+figure
+for i=1:length(alpha)
+    [~, VALS] = scheme(t,'alpha',alpha(i),'beta',beta,'total_iters',total_iters);
+    VALS = modify_values_for_log_plot(VALS,opt_value);
+    semilogy(VALS,'linewidth',2,'color',CMAP(i,:));
+    hold on
+    
+    minval = min(VALS);
+    if minval < ylim_low
+        ylim_low = minval;
+    end
+end
+
+legend_labels = cell(length(alpha),1);
+for i=1:length(alpha)
+    legend_labels{i} = strcat('$\log_{10}(\alpha) = $',sprintf(' %s', num2str(log10(alpha(i)))));
+end
+legend(legend_labels,'interpreter','latex','fontsize',14)
+ax=gca; ax.FontSize=14;
+xlim([0,total_iters]);  ylim([ylim_low/4,max(VALS)])
+hold off
+savefig(fullfile(dname,'fixed_alpha_fixed_beta'))
+
+clear -regexp ^VALS;
+clear legend_labels;
+
+%% fixed alpha and search over beta
+alpha = logspace(0.2,2,10);
+CMAP = linspecer(length(alpha));
+
+t = 50000;
+total_iters = 5000;
+ylim_low = 1;
+
+figure
+for i=1:length(alpha)
+    [~, VALS] = scheme(t,'alpha',alpha(i),'total_iters',total_iters);
+    VALS = modify_values_for_log_plot(VALS,opt_value);
+    semilogy(VALS,'linewidth',2,'color',CMAP(i,:));
+    hold on
+    
+    minval = min(VALS);
+    if minval < ylim_low
+        ylim_low = minval;
+    end
+end
+
+legend_labels = cell(length(alpha),1);
+for i=1:length(alpha)
+    legend_labels{i} = strcat('$\log_{10}(\alpha) = $',sprintf(' %s', num2str(log10(alpha(i)))));
+end
+legend(legend_labels,'interpreter','latex','fontsize',14)
+ax=gca; ax.FontSize=14;
+xlim([0,total_iters]);  ylim([ylim_low/4,max(VALS)])
+hold off
+savefig(fullfile(dname,'fixed_alpha_search_beta'))
+
+clear -regexp ^VALS;
+clear legend_labels;
+
+
+%% fixed beta and search over alpha
+beta = 1:0.5:3;
+CMAP = linspecer(length(beta));
+
+t = 10000;
+total_iters = 3000;
+ylim_low = 1;
+
+figure
+for i=1:length(beta)
+    [~, VALS] = scheme(t,'beta',beta(i),'total_iters',total_iters);
+    VALS = modify_values_for_log_plot(VALS,opt_value);
+    semilogy(VALS,'linewidth',2,'color',CMAP(i,:));
+    hold on
+    
+    minval = min(VALS);
+    if minval < ylim_low
+        ylim_low = minval;
+    end
+end
+
+legend_labels = cell(length(beta),1);
+for i=1:length(beta)
+    legend_labels{i} = strcat('$\beta = $',sprintf(' %1.1f', beta(i)));
+end
+legend(legend_labels,'interpreter','latex','fontsize',14)
+ax=gca; ax.FontSize=14;
+xlim([0,total_iters]);  ylim([ylim_low/4,max(VALS)])
+hold off
+savefig(fullfile(dname,'search_alpha_fixed_beta'))
+
+clear -regexp ^VALS;
+clear legend_labels;
 
 %% compare standard PD with radial-grid restart scheme
 
-alpha3 = 1;
-beta2 = 1;
-alpha1 = 1;
-beta1 = 1;
+alpha3 = alpha0;
+beta2 = beta0;
+alpha1 = alpha0;
+beta1 = beta0;
 
-t = 120000;
-max_total_iters = 40000;
+t = 450000;
+max_total_iters = 150000;
+ylim_low = 1;
 
 figure
 
@@ -101,17 +216,13 @@ figure
 
 for i=1:4
     if i == 1
-        [~, VALS] = re_radial_pd(...
-            pd_algo,pd_cost,f,g,kappa,x0y0,eps0,t,'alpha',alpha1,'a',exp(beta1),'beta',beta1,'total_iters',max_total_iters);
+        [~, VALS] = scheme(t,'alpha',alpha1,'a',exp(beta1),'beta',beta1,'total_iters',max_total_iters);
     elseif i == 2
-        [~, VALS] = re_radial_pd(...
-            pd_algo,pd_cost,f,g,kappa,x0y0,eps0,t,'a',exp(beta2),'beta',beta2,'total_iters',max_total_iters);
+        [~, VALS] = scheme(t,'a',exp(beta2),'beta',beta2,'total_iters',max_total_iters);
     elseif i == 3
-        [~, VALS] = re_radial_pd(...
-            pd_algo,pd_cost,f,g,kappa,x0y0,eps0,t,'alpha',alpha3,'total_iters',max_total_iters);
+        [~, VALS] = scheme(t,'alpha',alpha3,'total_iters',max_total_iters);
     elseif i == 4
-        [~, VALS] = re_radial_pd(...
-            pd_algo,pd_cost,f,g,kappa,x0y0,eps0,t,'total_iters',max_total_iters);
+        [~, VALS] = scheme(t,'total_iters',max_total_iters);
     end
     VALS = modify_values_for_log_plot(VALS,opt_value);
     semilogy(VALS,'linewidth',2);

@@ -2,6 +2,9 @@ clear
 close all
 clc
 
+% Comparison of various restart schemes with the sparsity of the ground 
+% truth vector varied in the sparse recovery problem.
+
 import ne_methods.op_matrix_operator 
 import restart_schemes.fom_pd_QCBP
 import restart_schemes.re_radial_pd

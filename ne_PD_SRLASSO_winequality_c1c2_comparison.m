@@ -6,52 +6,58 @@ clc
 % generated for each choice of c1 with varying c2.
 
 import ne_methods.op_matrix_operator 
-import restart_schemes.fom_pd_QCBP
+import restart_schemes.fom_pd_SRLASSO
 import restart_schemes.re_radial_pd
 
 % fix seed for debugging
 rng(1)
 
-%% QCBP problem definition
+%% SR-LASSO problem definition
 
-N = 128;          % s-sparse vector size
-s = 15;           % sparsity
-m = 60;           % measurements
-nlevel = 1e-6;    % noise level
+data = load('data/winequality.mat');
+A = data.('features');
+b = data.('labels');
+lambda = 1;
 
-% s-sparse vector
-x = zeros(N,1);
-x(1:s) = randn(s,1);
-x = x(randperm(N));
+m = size(A,1);
+N = size(A,2);
+fprintf('Dimensions of A: %d x %d\n', m, N)
+fprintf('Length of b: %d\n', length(b))
 
-% measurement matrix (Gaussian random)
-A = randn(m,N)/sqrt(m);
+% normalize A by standard score
+A = (A-mean(A,1))./std(A,0,1);
+A = [A ones(m,1)];
 opA = @(z,ad) op_matrix_operator(A,z,ad);
-L_A = norm(A,2); % Lipschitz constant
-
-% measurement vector
-e = randn(m,1);
-b = A*x + nlevel*e/norm(e);
+L_A = norm(A,2);
 
 %% Restart scheme parameters
 
-f = @(z) norm(z{1},1); % objective function
-g = @(z) feasibility_gap(A*z{1}, b, nlevel); % gap function
-kappa = sqrt(m); % scalar factor for gap function
-alpha0 = 2*sqrt(m);
-
-x0 = zeros(N,1);
+x0 = zeros(N+1,1);
 y0 = zeros(m,1);
 x0y0 = {x0,y0};
-opt_value = f({x}) + kappa.*g({x});
-eps0 = f(x0y0) + kappa.*g(x0y0);
 
-eval_fns = {@(z) norm(z{1}-x,2)};
+f = @(z) lambda*norm(z{1},1) + norm(opA(z{1},0)-b,2);
+g = @(z) 0;
+kappa = 0;
+alpha0 = 10^(1.2);
 
-pd_cost = @(delta, eps, xy_init) ceil(2*L_A*(kappa+norm(xy_init{2}))*delta/eps);
-pd_algo = @(delta, eps, xy_init,F) fom_pd_QCBP(...
-    xy_init{1}, xy_init{2}, delta/((kappa+norm(xy_init{2}))*L_A), (kappa+norm(xy_init{2}))/(delta*L_A), pd_cost(delta,eps,xy_init), opA, b, nlevel, eval_fns, F);
+eps0 = f({x0});
 
+eval_fns = {f};
+
+pd_cost = @(delta, eps, xy_init) ceil(2*L_A*delta/eps);
+pd_algo = @(delta, eps, xy_init, F) fom_pd_SRLASSO(...
+    xy_init{1}, xy_init{2}, delta/L_A, 1/(delta*L_A), pd_cost(delta,eps), opA, b, lambda, eval_fns, F);
+
+%% Precompute optimal value with CVX
+
+cvx_precision best
+cvx_begin quiet
+    variable x(N+1)
+    minimize( lambda*norm(x,1) + norm(A*x-b,2) )
+cvx_end
+
+opt_value = cvx_optval;
 
 %% Plotting parameters
 
@@ -72,31 +78,37 @@ CMAP = linspecer(length(c2));
 
 t = 10000;
 max_total_iters = 1500;
+ylim_low = 1;
 
 for i=1:length(c1)
     figure
     for j=1:length(c2)
         [~, GRID_VALS] = re_radial_pd(...
             pd_algo,pd_cost,f,g,kappa,x0y0,eps0,t,'alpha0',alpha0,'c1',c1(i),'c2',c2(j),'total_iters',max_total_iters);
+        GRID_VALS = modify_values_for_log_plot(GRID_VALS, opt_value);
         semilogy(GRID_VALS,'linewidth',2,'color',CMAP(j,:));
         hold on
+
+        minval = min(GRID_VALS);
+        if minval < ylim_low
+            ylim_low = minval;
         end
+    end
     legend_labels = cell(length(c2),1);
     for j=1:length(c2)
         legend_labels{j} = strcat('$c_2 = $',sprintf(' %1.0f', c2(j)));
     end
     legend(legend_labels,'interpreter','latex','fontsize',14)
     ax=gca; ax.FontSize=14;
-    xlim([0,max_total_iters]);  ylim([nlevel/4,10])
+    xlim([0,max_total_iters]);  ylim([ylim_low/4,10])
     hold off
     savefig(fullfile(dname,sprintf('c1c2_comparison_c1_%d',c1(i))))
 end
 
 
 %% Additional functions specific to the experiment
-
-% Feasibility gap function handle
-function out = feasibility_gap(z, center, rad)
-dist = norm(z-center,2);
-out = max(dist-rad,0);
+function new_values = modify_values_for_log_plot(values, opt_val)
+    new_values = values-opt_val;
+    min_nz_val = min(new_values(new_values>0),[],'all');
+    new_values = max(new_values,min_nz_val);
 end

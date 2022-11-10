@@ -2,6 +2,9 @@ clear
 close all
 clc
 
+% Performance of various restart schemes with different approximate 
+% sharpness parameters on a sparse recovery problem.
+
 import ne_methods.op_matrix_operator 
 import restart_schemes.fom_pd_QCBP
 import restart_schemes.re_radial_pd

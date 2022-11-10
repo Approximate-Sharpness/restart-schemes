@@ -1,7 +1,7 @@
 % FOM_NESTA NESTerov's Algorithm to solve analysis-QCBP.
 % 
 %   An accelerated projected gradient descent algorithm to solve
-%   analysis quadratically constrained basis pursuit (aQCBP).
+%   analysis quadratically constrained basis pursuit (A-QCBP).
 %
 % INPUT
 % =====
@@ -17,7 +17,7 @@
 %   eval_fns  - cell array of function handles to evaluate on each iterate
 %               (assign the empty array [] to disable)
 %   F         - a function to use as the argmin over the iterates for
-%               eval_fns and the final output (see notes).
+%               eval_fns and the final output (see NOTES).
 %
 % OUTPUT
 % ======
@@ -37,13 +37,14 @@
 %   opA and opW should be function handles representing linear operators,
 %   each with their first argument a compatible input and their second 
 %   argument a boolean flag to enable using the adjoint of the linear 
-%   operator (when the flag is nonzero).
+%   operator when the flag is nonzero (i.e. true).
 %
 %   The purpose of expressing opA and opW in this way is to allow for 
 %   efficient implementations (e.g. fast wavelet transform).
 %
 %   Additionally, this algorithm is implemented to handle complex-valued
-%   data, so opA can be say, the discrete Fourier transform.
+%   data, so opA can be e.g. the discrete Fourier transform, and the
+%   iterates are now (possibly) complex-valued.
 %
 %   The output and evaluations
 %   --------------------------
@@ -55,7 +56,8 @@
 %
 % REFERENCES
 % ==========
-%   - TO DO ...
+%   - "NESTA: A Fast and Accurate First-Order Method for Sparse Recovery",
+%     Becker, et al (2011). doi:10.1137/090756855
 %
 
 function [result, ev_values] = fom_nesta(z0, opA, c_A, b, opW, L_W, num_iters, nlvl, mu, eval_fns, F)
