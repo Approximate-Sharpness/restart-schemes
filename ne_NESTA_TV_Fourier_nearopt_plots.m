@@ -75,7 +75,7 @@ mkdir(dname);
 %% fixed alpha, beta
 
 beta = 1;
-alpha = logspace(2.3,2.75,10);
+alpha = logspace(2.4,2.95,12);
 CMAP = linspecer(length(alpha));
 
 t = 20000;
@@ -105,7 +105,7 @@ clear legend_labels;
 
 %% compare standard NESTA with radial-grid restart scheme
 
-alpha1 = 475;
+alpha1 = 630;
 beta1 = 1;
 beta2 = 1;
 
@@ -120,10 +120,10 @@ for i=1:3
             nesta_algo,nesta_cost,f,g,kappa,z0,eps0,t,'alpha',alpha1,'beta',beta1,'total_iters',max_total_iters);
     elseif i == 2
         [~, VALS] = re_radial(...
-            nesta_algo,nesta_cost,f,g,kappa,z0,eps0,t,'beta',beta2,'total_iters',max_total_iters);
+            nesta_algo,nesta_cost,f,g,kappa,z0,eps0,t,'alpha0',sqrt(m),'beta',beta2,'total_iters',max_total_iters);
     elseif i == 3
         [~, VALS] = re_radial(...
-            nesta_algo,nesta_cost,f,g,kappa,z0,eps0,t,'total_iters',max_total_iters);
+            nesta_algo,nesta_cost,f,g,kappa,z0,eps0,t,'alpha0',sqrt(m),'total_iters',max_total_iters);
     end
 
     semilogy(VALS,'linewidth',2)
@@ -137,7 +137,7 @@ for i=1:length(mu)
     [~, NESTA_VALS] = fom_nesta(...
         z0, opA, c_A, y, opW, L_W, max_total_iters, nlevel, mu(i), eval_fns, f);
     
-    semilogy(NESTA_VALS,'linewidth',2);
+    semilogy(NESTA_VALS,'linewidth',2,'linestyle','--');
     
     hold on
 end

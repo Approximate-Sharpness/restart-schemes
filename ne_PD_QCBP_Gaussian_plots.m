@@ -51,9 +51,6 @@ scheme = @(t,varargin) re_radial_pd(pd_algo,pd_cost,f,g,kappa,x0y0,eps0,t,'alpha
 
 %% Plotting parameters
 
-% x_axis_label = 'total iterations';
-% y_axis_label = 'reconstruction error';
-
 [~,fname,~] = fileparts(mfilename);
 dname = sprintf('results/%s/', fname);
 mkdir(dname);
@@ -120,10 +117,11 @@ CMAP = linspecer(length(beta));
 
 t = 10000;
 total_iters = 3000;
+c1 = 2;
 
 figure
 for i=1:length(beta)
-    [~, VALS] = scheme(t,'beta',beta(i),'total_iters',total_iters);
+    [~, VALS] = scheme(t,'c1',c1,'a',exp(c1*beta(i)),'beta',beta(i),'total_iters',total_iters);
     semilogy(VALS,'linewidth',2','color',CMAP(i,:));
     hold on
 end
@@ -143,6 +141,7 @@ clear legend_labels;
 
 %% compare standard PD with radial-grid restart scheme
 
+c1_2 = 2;
 beta2 = 1;
 alpha1 = sqrt(m);
 beta1 = 1;
@@ -159,15 +158,15 @@ for i=1:3
     if i == 1
         [~, VALS] = scheme(t,'alpha',alpha1,'beta',beta1,'total_iters',total_iters);
     elseif i == 2
-        [~, VALS] = scheme(t,'beta',beta2,'total_iters',total_iters);
+        [~, VALS] = scheme(t,'c1',c1_2,'a',exp(c1_2*beta2),'beta',beta2,'total_iters',total_iters);
     elseif i == 3
-        [~, VALS] = scheme(t,'total_iters',total_iters);
+        [~, VALS] = scheme(t,'c1',c1_2,'a',exp(c1_2*beta2),'total_iters',total_iters);
     end
     semilogy(VALS,'linewidth',2);
     hold on
 end
 
-semilogy(pd_ev_values,'linewidth',2);
+semilogy(pd_ev_values,'linewidth',2,'linestyle','--');
 
 legend_labels = cell(3,1);
 legend_labels{1} = strcat('$\alpha = $',sprintf(' %1.1f,', alpha1),' $\beta = $',sprintf(' %1.1f', beta1));
