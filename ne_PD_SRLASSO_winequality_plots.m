@@ -221,7 +221,7 @@ for i=1:4
     elseif i == 3
         [~, VALS] = scheme(t,'alpha',alpha3,'total_iters',max_total_iters);
     elseif i == 4
-        [~, VALS] = scheme(t,'total_iters',max_total_iters);
+        [~, VALS] = scheme(t,'a',exp(c1),'total_iters',max_total_iters);
     end
     VALS = modify_values_for_log_plot(VALS,opt_value);
     semilogy(VALS,'linewidth',2);

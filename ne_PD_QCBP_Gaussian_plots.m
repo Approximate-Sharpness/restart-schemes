@@ -141,7 +141,7 @@ clear legend_labels;
 
 %% compare standard PD with radial-grid restart scheme
 
-c1_2 = 2;
+c1 = 2;
 beta2 = 1;
 alpha1 = sqrt(m);
 beta1 = 1;
@@ -158,9 +158,9 @@ for i=1:3
     if i == 1
         [~, VALS] = scheme(t,'alpha',alpha1,'beta',beta1,'total_iters',total_iters);
     elseif i == 2
-        [~, VALS] = scheme(t,'c1',c1_2,'a',exp(c1_2*beta2),'beta',beta2,'total_iters',total_iters);
+        [~, VALS] = scheme(t,'c1',c1,'a',exp(c1*beta2),'beta',beta2,'total_iters',total_iters);
     elseif i == 3
-        [~, VALS] = scheme(t,'c1',c1_2,'a',exp(c1_2*beta2),'total_iters',total_iters);
+        [~, VALS] = scheme(t,'c1',c1,'a',exp(c1),'total_iters',total_iters);
     end
     semilogy(VALS,'linewidth',2);
     hold on

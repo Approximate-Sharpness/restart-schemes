@@ -135,6 +135,7 @@ clear legend_labels;
 
 %% fixed beta and search over alpha
 beta = 1;
+c1 = 2;
 
 t = 10000;
 total_iters = 3000;
@@ -154,7 +155,7 @@ for i=1:length(s)
 
     scheme = @(t,varargin) re_radial_pd(pd_algo,pd_cost,f,g,kappa,x0y0,eps0,t,'alpha0',alpha0,varargin{:});
 
-    [~, VALS] = scheme(t,'beta',beta,'total_iters',total_iters);
+    [~, VALS] = scheme(t,'c1',c1,'a',exp(c1*beta),'beta',beta,'total_iters',total_iters);
     semilogy(VALS,'linewidth',2,'color',CMAP(i,:));
     hold on
 end
@@ -176,6 +177,7 @@ clear legend_labels;
 
 t = 10000;
 total_iters = 3000;
+c1 = 2;
 
 figure
 for i=1:length(s)
@@ -192,7 +194,7 @@ for i=1:length(s)
 
     scheme = @(t,varargin) re_radial_pd(pd_algo,pd_cost,f,g,kappa,x0y0,eps0,t,'alpha0',alpha0,varargin{:});
 
-    [~, VALS] = scheme(t,'total_iters',total_iters);
+    [~, VALS] = scheme(t,'c1',c1,'a',exp(c1),'total_iters',total_iters);
     semilogy(VALS,'linewidth',2,'color',CMAP(i,:));
     hold on
 end

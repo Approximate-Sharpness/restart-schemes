@@ -102,6 +102,7 @@ clear legend_labels;
 alpha1 = 446;
 beta1 = 1;
 beta2 = 1;
+c1 = 2;
 
 t = 100000;
 max_total_iters = 30000;
@@ -114,10 +115,10 @@ for i=1:3
             nesta_algo,nesta_cost,f,g,kappa,z0,eps0,t,'alpha',alpha1,'beta',beta1,'total_iters',max_total_iters);
     elseif i == 2
         [~, VALS] = re_radial(...
-            nesta_algo,nesta_cost,f,g,kappa,z0,eps0,t,'alpha0',sqrt(m),'beta',beta2,'total_iters',max_total_iters);
+            nesta_algo,nesta_cost,f,g,kappa,z0,eps0,t,'a',exp(c1*beta2),'c1',c1,'alpha0',sqrt(m),'beta',beta2,'total_iters',max_total_iters);
     elseif i == 3
         [~, VALS] = re_radial(...
-            nesta_algo,nesta_cost,f,g,kappa,z0,eps0,t,'alpha0',sqrt(m),'total_iters',max_total_iters);
+            nesta_algo,nesta_cost,f,g,kappa,z0,eps0,t,'a',exp(c1),'c1',c1,'alpha0',sqrt(m),'total_iters',max_total_iters);
     end
 
     semilogy(VALS,'linewidth',2)

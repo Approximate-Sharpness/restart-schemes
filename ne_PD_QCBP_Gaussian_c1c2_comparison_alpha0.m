@@ -86,7 +86,7 @@ CMAP1 = linspecer(length(c1));
 figure
 for i=1:length(c1)
     [~, GRID_VALS] = re_radial_pd(...
-        pd_algo,pd_cost,f,g,kappa,x0y0,eps0,t,'c1',c1(i),'alpha0',alpha0,'beta',beta,'total_iters',max_total_iters);
+        pd_algo,pd_cost,f,g,kappa,x0y0,eps0,t,'a',exp(c1(i)*beta),'c1',c1(i),'alpha0',alpha0,'beta',beta,'total_iters',max_total_iters);
     semilogy(GRID_VALS,'linewidth',2,'color',CMAP1(i,:));
     hold on
 end
