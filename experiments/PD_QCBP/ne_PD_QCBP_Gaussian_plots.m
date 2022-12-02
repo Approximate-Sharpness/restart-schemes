@@ -87,7 +87,7 @@ clear legend_labels;
 alpha = logspace(0.2,2,10);
 CMAP = linspecer(length(alpha));
 
-t = 100000;
+t = 50000;
 total_iters = 5000;
 
 figure
@@ -112,7 +112,7 @@ clear legend_labels;
 
 
 %% fixed beta and search over alpha
-beta = 1:0.5:3;
+beta = 1:0.2:3;
 CMAP = linspecer(length(beta));
 
 t = 10000;

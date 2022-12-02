@@ -2,8 +2,8 @@ clear
 close all
 clc
 
-% Comparison of selecting grid search parameters c1 and c2. A plot is
-% generated for each choice of c1 with varying c2.
+% Comparison of selecting grid search parameters c1 and c2, more clearly
+% indicating the sensitivity of choosing alpha0.
 
 import ne_methods.op_matrix_operator 
 import restart_schemes.fom_pd_QCBP
@@ -38,7 +38,6 @@ b = A*x + nlevel*e/norm(e);
 f = @(z) norm(z{1},1); % objective function
 g = @(z) feasibility_gap(A*z{1}, b, nlevel); % gap function
 kappa = sqrt(m); % scalar factor for gap function
-alpha0 = 2*sqrt(m);
 
 x0 = zeros(N,1);
 y0 = zeros(m,1);
@@ -65,32 +64,32 @@ mkdir(dname);
 
 %% Generate plots comparing performance of selecting c1 and c2
 
-c1 = [2,4,6,8,10,12];
-c2 = [2,4,6,8,10,12];
+t = 50000;
+max_total_iters = 5000;
 
-CMAP = linspecer(length(c2));
+% grid search alpha
+alpha0 = sqrt(m);
+beta = 1;
+c1 = linspace(1,10,10);
+CMAP1 = linspecer(length(c1));
 
-t = 10000;
-max_total_iters = 1500;
-
+figure
 for i=1:length(c1)
-    figure
-    for j=1:length(c2)
-        [~, GRID_VALS] = re_radial_pd(...
-            pd_algo,pd_cost,f,g,kappa,x0y0,eps0,t,'a',exp(c1(i)),'alpha0',alpha0,'c1',c1(i),'c2',c2(j),'total_iters',max_total_iters);
-        semilogy(GRID_VALS,'linewidth',2,'color',CMAP(j,:));
-        hold on
-        end
-    legend_labels = cell(length(c2),1);
-    for j=1:length(c2)
-        legend_labels{j} = strcat('$c_2 = $',sprintf(' %1.0f', c2(j)));
-    end
-    legend(legend_labels,'interpreter','latex','fontsize',14)
-    ax=gca; ax.FontSize=14;
-    xlim([0,max_total_iters]);  ylim([nlevel/4,10])
-    hold off
-    savefig(fullfile(dname,sprintf('c1c2_comparison_c1_%d',c1(i))))
+    [~, GRID_VALS] = re_radial_pd(...
+        pd_algo,pd_cost,f,g,kappa,x0y0,eps0,t,'a',exp(c1(i)*beta),'c1',c1(i),'alpha0',alpha0,'beta',beta,'total_iters',max_total_iters);
+    semilogy(GRID_VALS,'linewidth',2,'color',CMAP1(i,:));
+    hold on
 end
+
+legend_labels = cell(length(c1),1);
+for i=1:length(c1)
+    legend_labels{i} = strcat('$c_1 = $',sprintf(' %1.0f', c1(i)));
+end
+legend(legend_labels,'interpreter','latex','fontsize',14)
+ax=gca; ax.FontSize=14;
+xlim([0,max_total_iters]);  ylim([nlevel/4,10])
+hold off
+savefig(fullfile(dname,sprintf('c1_comparison_alpha0_less',c1(i))))
 
 
 %% Additional functions specific to the experiment
