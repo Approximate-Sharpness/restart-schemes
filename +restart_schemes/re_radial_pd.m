@@ -2,7 +2,8 @@
 %
 %   Implements a restart scheme modified to accelerate Chambolle-Pock
 %   primal-dual iteration. This is an extension to RE_RADIAL that performs
-%   restarts and tracks the dual variables for each instance.
+%   restarts and tracks the dual variables for each instance. See the first
+%   reference below.
 %   
 %   The sharpness constants are specified optionally, where for
 %   those not specified, a logarithmic grid search for the unspecified
@@ -22,18 +23,23 @@
 %
 % OPTIONAL PARAMETERS
 % ===================
-%   alpha       - scaling sharpness constant
-%   beta        - exponent sharpness constant
-%   eval_fns    - cell array of function handles to evaluate on each 
-%                 iterate
+%   alpha       - scaling sharpness parameter (defaults to grid search)
+%   alpha0      - center for alpha grid search (defaults to 1)
+%   a           - base for alpha points
+%   beta        - exponent sharpness parameter (defaults to grid search)
+%   beta0       - center for beta grid search (defaults to 1)
+%   b           - base for beta points
+%   r           - decay parameter (defaults to exp(-1))
+%   c1          - alpha grid search schedule parameter (defaults to 2)
+%   c2          - beta grid search schedule parameter (defaults to 2)
 %   total_iters - stop after at some number of total iterations are 
 %                 performed
 %
 % OUTPUT
 % ======
 %   result         - final iterate minimizing f + kappa*g
-%   re_ev_values   - evaluation of eval_fns at each executed restart
-%   re_inner_iters - number of inner iterations at each executed restart
+%   re_ev_values   - evaluation of eval_fns at each executed restart if
+%                    defined for fom
 %
 % NOTES
 % =====
@@ -43,7 +49,8 @@
 %     - delta  : an upper bound of the l2-distance for the initial guess 
 %                to a minimizer
 %     - eps    : the target accuracy of 'fom'
-%     - x_init : the initial vector for 'fom'
+%     - x_init : the initial vector for 'fom' (1x2 cell with initial
+%                vectors for primal and dual problem)
 %
 %   The output of 'fom' should be: result, o_values, c_values. The result
 %   is the final output iterate achieving objective error eps, and cells
@@ -55,17 +62,19 @@
 %   iterations needed for 'fom' to achieve precision eps with initial
 %   distance delta.
 %   
-%   See [TO DO ... / REF] for examples of how to define 'fom' and 'C_fom'.
-%
+%   The numerical experiments provided with this code give examples for how
+%   to define C_fom and fom.
 %   
 %   Note that the radial ordering implementation here restricts the range
 %   of which sharpness constants are considered, with exponent of maximum
-%   absolute value equal to floor(abs(log(eps))), where eps is machine
-%   epsilon.
+%   absolute value proportional to floor(abs(log(eps))), where eps is 
+%   machine epsilon.
 %
 % REFERENCES
 % ==========
-%   - TO DO ...
+%   - "WARPd: A Linearly Convergent First-Order Primal-Dual Algorithm for 
+%     Inverse Problems with Approximate Sharpness Conditions", Colbrook
+%     (2022). doi:10.1137/21M1455000
 %
 
 function [result, ev_values] = re_radial_pd(...

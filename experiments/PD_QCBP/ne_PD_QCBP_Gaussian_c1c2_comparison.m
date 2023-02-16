@@ -2,6 +2,9 @@ clear
 close all
 clc
 
+% Comparison of selecting grid search parameters c1 and c2. A plot is
+% generated for each choice of c1 with varying c2.
+
 import ne_methods.op_matrix_operator 
 import restart_schemes.fom_pd_QCBP
 import restart_schemes.re_radial_pd
@@ -65,7 +68,7 @@ mkdir(dname);
 c1 = [2,4,6,8,10,12];
 c2 = [2,4,6,8,10,12];
 
-CMAP = linspecer(length(c2));
+CMAP = linspecer(length(c2)+4);
 
 t = 10000;
 max_total_iters = 1500;
@@ -74,10 +77,10 @@ for i=1:length(c1)
     figure
     for j=1:length(c2)
         [~, GRID_VALS] = re_radial_pd(...
-            pd_algo,pd_cost,f,g,kappa,x0y0,eps0,t,'alpha0',alpha0,'c1',c1(i),'c2',c2(j),'total_iters',max_total_iters);
+            pd_algo,pd_cost,f,g,kappa,x0y0,eps0,t,'a',exp(c1(i)),'alpha0',alpha0,'c1',c1(i),'c2',c2(j),'total_iters',max_total_iters);
         semilogy(GRID_VALS,'linewidth',2,'color',CMAP(j,:));
         hold on
-        end
+    end
     legend_labels = cell(length(c2),1);
     for j=1:length(c2)
         legend_labels{j} = strcat('$c_2 = $',sprintf(' %1.0f', c2(j)));

@@ -1,4 +1,4 @@
-% radial sampling scheme in 2 dimensions
+% radial sampling pattern in 2 dimensions
 
 function mask = sa_radial_2d(N, lines)
 

@@ -2,6 +2,9 @@ clear
 close all
 clc
 
+% Comparison of selecting grid search parameters c1 and c2, more clearly
+% indicating the sensitivity of choosing alpha0.
+
 import ne_methods.op_matrix_operator 
 import restart_schemes.fom_pd_QCBP
 import restart_schemes.re_radial_pd
@@ -62,10 +65,9 @@ mkdir(dname);
 %% Generate plots comparing performance of selecting c1 and c2
 
 t = 50000;
-max_total_iters = 2000;
+max_total_iters = 5000;
 
 % grid search alpha
-%alpha0 = 2*sqrt(m);
 alpha0 = sqrt(m);
 beta = 1;
 c1 = linspace(1,10,10);
@@ -74,7 +76,7 @@ CMAP1 = linspecer(length(c1));
 figure
 for i=1:length(c1)
     [~, GRID_VALS] = re_radial_pd(...
-        pd_algo,pd_cost,f,g,kappa,x0y0,eps0,t,'c1',c1(i),'alpha0',alpha0,'beta',beta,'total_iters',max_total_iters);
+        pd_algo,pd_cost,f,g,kappa,x0y0,eps0,t,'a',exp(c1(i)*beta),'c1',c1(i),'alpha0',alpha0,'beta',beta,'total_iters',max_total_iters);
     semilogy(GRID_VALS,'linewidth',2,'color',CMAP1(i,:));
     hold on
 end
@@ -87,8 +89,7 @@ legend(legend_labels,'interpreter','latex','fontsize',14)
 ax=gca; ax.FontSize=14;
 xlim([0,max_total_iters]);  ylim([nlevel/4,10])
 hold off
-%savefig(fullfile(dname,sprintf('c1_comparison_bad_alpha0',c1(i))))
-savefig(fullfile(dname,sprintf('c1_comparison_good_alpha0',c1(i))))
+savefig(fullfile(dname,sprintf('c1_comparison_alpha0_less',c1(i))))
 
 
 %% Additional functions specific to the experiment

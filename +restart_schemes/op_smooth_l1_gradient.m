@@ -1,6 +1,6 @@
-% Gradient of the l1-norm's Moreau envelope. 
+% Gradient of the L1-norm Moreau envelope. 
 %
-% Used in 'fom_nesta.m'.
+% To be used as opW in 'fom_nesta.m'.
 
 function out = op_smooth_l1_gradient(x, mu)
     

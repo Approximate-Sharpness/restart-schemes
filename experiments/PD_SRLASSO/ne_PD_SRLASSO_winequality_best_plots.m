@@ -14,28 +14,11 @@ rng(1)
 
 %% SR-LASSO problem definition
 
-data = load('data/colon-cancer.mat');
+data = load('data/winequality.mat');
 A = data.('features');
 b = data.('labels');
-lambda = 0.5;
 
-%%%%% BELOW NEEDS TO BE UNCOMMENTED TO ENABLE LABEL CORRUPTION %%%%%
-
-% label corruption
-%cor_rate = 0.2;
-%for i=1:length(b)
-%    if (rand < cor_rate)
-%        b(i) = -b(i);
-%    end
-%end
-
-%%%%% BELOW NEEDS TO BE UNCOMMENTED TO REDUCE DATA POINTS %%%%%
-
-% drop data points
-%drop_rate = 0.25;
-%drop_mask = rand(length(b),1) > drop_rate;
-%A = A(drop_mask,:);
-%b = b(drop_mask);
+lambda = 3;
 
 m = size(A,1);
 N = size(A,2);
@@ -57,10 +40,10 @@ x0y0 = {x0,y0};
 f = @(z) lambda*norm(z{1},1) + norm(opA(z{1},0)-b,2);
 g = @(z) 0;
 kappa = 0;
-alpha0 = 0.25;
+alpha0 = 10^(1.2);
 beta0 = 2.5;
-c1 = 2;
-c2 = 2;
+c1 = 4;
+c2 = 4;
 
 eps0 = f({x0});
 
@@ -89,14 +72,15 @@ fprintf('CVX solution has %d coefficients of absolute value > 1e-5\n',s)
 
 % x_axis_label = 'total iterations';
 % y_axis_label = 'reconstruction error';
+ylim_low = 1;
 
 [~,fname,~] = fileparts(mfilename);
 dname = sprintf('results/%s/', fname);
 mkdir(dname);
 
 %% fixed alpha and fixed beta
-beta = 1;
-alpha = logspace(0,2,11);
+beta = beta0;
+alpha = logspace(0,4,11);
 CMAP = linspecer(length(alpha));
 
 t = 10000;
@@ -133,7 +117,7 @@ clear legend_labels;
 alpha = logspace(0.2,2,10);
 CMAP = linspecer(length(alpha));
 
-t = 50000;
+t = 20000;
 total_iters = 5000;
 ylim_low = 1;
 
@@ -165,16 +149,16 @@ clear legend_labels;
 
 
 %% fixed beta and search over alpha
-beta = 1:0.5:3;
+beta = 1:0.5:6;
 CMAP = linspecer(length(beta));
 
 t = 10000;
-total_iters = 3000;
+total_iters = 5000;
 ylim_low = 1;
 
 figure
 for i=1:length(beta)
-    [~, VALS] = scheme(t,'beta',beta(i),'total_iters',total_iters);
+    [~, VALS] = scheme(t,'a',exp(c1*beta(i)),'beta',beta(i),'total_iters',total_iters);
     VALS = modify_values_for_log_plot(VALS,opt_value);
     semilogy(VALS,'linewidth',2,'color',CMAP(i,:));
     hold on
@@ -198,6 +182,7 @@ savefig(fullfile(dname,'search_alpha_fixed_beta'))
 clear -regexp ^VALS;
 clear legend_labels;
 
+
 %% compare standard PD with radial-grid restart scheme
 
 alpha3 = alpha0;
@@ -205,9 +190,8 @@ beta2 = beta0;
 alpha1 = alpha0;
 beta1 = beta0;
 
-t = 450000;
-max_total_iters = 150000;
-ylim_low = 1;
+t = 15000;
+max_total_iters = 5000;
 
 figure
 

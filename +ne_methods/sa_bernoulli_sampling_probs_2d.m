@@ -1,4 +1,4 @@
-% Compute 2D Bernoulli sampling probabilities.
+% Compute 2D Bernoulli near-optimal sampling probabilities.
 %
 % Ported code from nestanet/sampling.py in
 % > https://github.com/mneyrane/AS-NESTA-net

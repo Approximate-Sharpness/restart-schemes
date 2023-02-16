@@ -17,13 +17,19 @@ X = double(imread('data/GPLU_phantom_512.png'))/255;
 [N, ~] = size(X); % image size (assumed to be N by N)
 nlevel = 1e-5;    % noise level
 
-% radial sampling mask (132 lines yields ~12.5% sample rate)
-lines = 132;
-mask = sa_radial_2d(N,lines);
+% near-optimal sampling mask
+sample_rate = 0.125;
+m = ceil(sample_rate*N*N);
+var_hist = sa_inverse_square_law_hist_2d(N,1);
+var_probs = sa_bernoulli_sampling_probs_2d(var_hist,m/2);
+var_mask = binornd(ones(N,N),var_probs);
+num_var_samples = sum(var_mask,'all');
+uni_mask_cond = rand(N*N-num_var_samples,1) <= (m/2)/(N*N-num_var_samples);
+uni_mask = zeros(N,N);
+uni_mask(~var_mask) = uni_mask_cond;
+mask = uni_mask | var_mask;
 sample_idxs = find(mask);
 m_exact = length(sample_idxs);
-m = m_exact;
-fprintf('sample rate: %.5f\n', m/(N*N))
 
 % flatten image
 x = reshape(X,[N*N,1]);
@@ -54,7 +60,7 @@ eps0 = f(z0);
 % relative reconstruction error
 eval_fns = {@(z) norm(z-x,2)};
 
-nesta_cost = @(delta, eps) ceil(4*sqrt(2)*N*delta/eps);
+nesta_cost = @(delta, eps) ceil(8*N*delta/eps);
 nesta_algo = @(delta, eps, x_init, F) fom_nesta(...
     x_init, opA, c_A, y, opW, L_W, nesta_cost(delta,eps), nlevel, eps/(N*N), eval_fns, F);
 
@@ -69,7 +75,7 @@ mkdir(dname);
 %% fixed alpha, beta
 
 beta = 1;
-alpha = logspace(2.3,2.75,10);
+alpha = logspace(2.4,2.95,12);
 CMAP = linspecer(length(alpha));
 
 t = 20000;
@@ -99,9 +105,10 @@ clear legend_labels;
 
 %% compare standard NESTA with radial-grid restart scheme
 
-alpha1 = 300;
+alpha1 = 630;
 beta1 = 1;
 beta2 = 1;
+c1 = 2;
 
 t = 100000;
 max_total_iters = 30000;
@@ -114,10 +121,10 @@ for i=1:3
             nesta_algo,nesta_cost,f,g,kappa,z0,eps0,t,'alpha',alpha1,'beta',beta1,'total_iters',max_total_iters);
     elseif i == 2
         [~, VALS] = re_radial(...
-            nesta_algo,nesta_cost,f,g,kappa,z0,eps0,t,'beta',beta2,'total_iters',max_total_iters);
+            nesta_algo,nesta_cost,f,g,kappa,z0,eps0,t,'a',exp(c1*beta2),'c1',c1,'alpha0',sqrt(m),'beta',beta2,'total_iters',max_total_iters);
     elseif i == 3
         [~, VALS] = re_radial(...
-            nesta_algo,nesta_cost,f,g,kappa,z0,eps0,t,'total_iters',max_total_iters);
+            nesta_algo,nesta_cost,f,g,kappa,z0,eps0,t,'a',exp(c1),'c1',c1,'alpha0',sqrt(m),'total_iters',max_total_iters);
     end
 
     semilogy(VALS,'linewidth',2)
@@ -131,7 +138,7 @@ for i=1:length(mu)
     [~, NESTA_VALS] = fom_nesta(...
         z0, opA, c_A, y, opW, L_W, max_total_iters, nlevel, mu(i), eval_fns, f);
     
-    semilogy(NESTA_VALS,'linewidth',2);
+    semilogy(NESTA_VALS,'linewidth',2,'linestyle','--');
     
     hold on
 end
