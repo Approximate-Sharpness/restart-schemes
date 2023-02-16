@@ -41,9 +41,9 @@ f = @(z) lambda*norm(z{1},1) + norm(opA(z{1},0)-b,2);
 g = @(z) 0;
 kappa = 0;
 alpha0 = 10^(1.2);
-beta0 = 2.5;
-c1 = 4;
-c2 = 4;
+beta0 = 3;
+c1 = 2;
+c2 = 2;
 
 eps0 = f({x0});
 
@@ -149,8 +149,8 @@ clear legend_labels;
 
 
 %% fixed beta and search over alpha
-beta = 1:0.5:6;
-CMAP = linspecer(length(beta));
+beta = 1:1:8;
+CMAP = linspecer(length(beta)+2);
 
 t = 10000;
 total_iters = 5000;
@@ -190,8 +190,8 @@ beta2 = beta0;
 alpha1 = alpha0;
 beta1 = beta0;
 
-t = 15000;
-max_total_iters = 5000;
+t = 25000;
+max_total_iters = 10000;
 
 figure
 
