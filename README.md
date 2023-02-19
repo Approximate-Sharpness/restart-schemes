@@ -1,7 +1,7 @@
-# General restart schemes
+# Restarts subject to approximate sharpness
 
-MATLAB code for restart schemes, *currently a work-in-progress!*
-The corresponding paper associated with this code will be mentioned after acceptance.
+MATLAB code for the numerical experiments in the preprint [Restarts subject to approximate sharpness: A parameter-free and optimal scheme for first-order methods](https://arxiv.org/abs/2301.02268).
+This repository may be updated as the article undergoes review.
 
 ## Requirements
 
@@ -14,7 +14,7 @@ The experiments should runs on MATLAB R2020b (or a later version) without issue.
 ## Running the experiments
 
 Clone or download the repository, and set the MATLAB path to be from the repository root. 
-The experiments are written in the `ne_*.m` scripts.
+The experiments are located in the `experiments/` folder, organized by the subsections in Section 5 of the paper.
 
 ## Attributions
 

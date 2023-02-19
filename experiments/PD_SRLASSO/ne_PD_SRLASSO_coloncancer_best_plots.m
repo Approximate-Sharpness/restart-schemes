@@ -42,8 +42,8 @@ g = @(z) 0;
 kappa = 0;
 alpha0 = 1;
 beta0 = 5;
-c1 = 4;
-c2 = 4;
+c1 = 2;
+c2 = 2;
 
 eps0 = f({x0});
 
@@ -148,8 +148,8 @@ clear legend_labels;
 
 
 %% fixed beta and search over alpha
-beta = 1:0.5:6;
-CMAP = linspecer(length(beta));
+beta = 1:1:8;
+CMAP = linspecer(length(beta)+2);
 
 t = 20000;
 total_iters = 10000;
@@ -188,8 +188,8 @@ beta2 = beta0;
 alpha1 = alpha0;
 beta1 = beta0;
 
-t = 40000;
-max_total_iters = 20000;
+t = 125000;
+max_total_iters = 50000;
 ylim_low = 1;
 
 figure
