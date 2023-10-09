@@ -14,6 +14,9 @@ while count < t
     if flags(1); n1end = min(alpha_lim,tau); else; n1end = 1; end
     if flags(2); n2end = min(beta_lim,tau); else; n2end = 1; end
     for n1 = 1:n1end
+        if (n1^c1) > tau
+            break
+        end
         for n2 = 1:n2end
             if (n1^c1)*(n2^c2) > tau
                 break
@@ -43,6 +46,9 @@ if flags(1); n1end = min(alpha_lim,tau); else; n1end = 1; end
 if flags(2); n2end = min(beta_lim,tau); else; n2end = 1; end
 
 for n1 = 1:n1end
+    if (n1^c1) > tau
+        break
+    end
     for n2 = 1:n2end
         if (n1^c1)*(n2^c2) > tau
             break

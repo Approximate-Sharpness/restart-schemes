@@ -34,7 +34,7 @@
 % OUTPUT
 % ======
 %   result         - final iterate minimizing f + kappa*g
-%   re_ev_values   - evaluation of eval_fns at each executed restart if
+%   ev_values      - evaluation of eval_fns at each executed restart if
 %                    defined for fom
 %
 % NOTES
