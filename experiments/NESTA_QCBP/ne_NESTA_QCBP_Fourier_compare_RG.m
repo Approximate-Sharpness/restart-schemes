@@ -56,7 +56,7 @@ z0 = (lmult/((lmult+1)*c_A)).*opA(y,1);
 eps0 = f(z0);
 
 % relative reconstruction error
-eval_fns = {@(z) norm(z-x,2)};
+eval_fns = {@(z) norm(z-x,2), f};
 
 nesta_cost = @(delta, eps) ceil(2*sqrt(N)*delta/eps);
 nesta_algo = @(delta, eps, x_init, F) fom_nesta(...
@@ -65,49 +65,18 @@ nesta_algo = @(delta, eps, x_init, F) fom_nesta(...
 rg_iteration = @(state) nesta_iteration(state.z, state.q_v, state.n, opA, c_A, y, opW, L_W, nlevel, state.mu);
 rg_initialize = @(z0, eps) nesta_initialize(z0, eps, N);
 
+
 %% Plotting parameters
 
 [~,fname,~] = fileparts(mfilename);
 dname = sprintf('results/%s/', fname);
 mkdir(dname);
 
-%% fixed alpha, beta -- use this to find near-optimal alpha
-%
-% beta = 1;
-% alpha = logspace(0.5,1.5,11);
-% CMAP = linspecer(length(alpha));
-% 
-% t = 5000;
-% max_total_iters = 500;
-% 
-% figure
-% 
-% for i=1:length(alpha)
-%     [~, VALS] = re_radial(...
-%     nesta_algo,nesta_cost,f,g,kappa,z0,eps0,t,'beta',beta,'alpha',alpha(i),'total_iters',max_total_iters);
-%     semilogy(VALS,'linewidth',2,'color',CMAP(i,:));
-%     hold on
-% end
-% 
-% legend_labels = cell(length(alpha),1);
-% for i=1:length(alpha)
-%     legend_labels{i} = strcat('$\log_{10}(\alpha) = $',sprintf(' %s', num2str(log10(alpha(i)))));
-% end
-% legend(legend_labels,'interpreter','latex','fontsize',14)
-% ax=gca; ax.FontSize=14;
-% xlim([0,max_total_iters]);  ylim([nlevel/4,max(VALS)])
-% hold off
-% savefig(fullfile(dname,'fixed_alpha_fixed_beta'))
-% 
-% clear -regexp ^VALS;
-% clear legend_labels;
 
 %% compare our restart scheme with R&G's scheme
 
-figure
-
 % our scheme
-alpha1 = 10^(0.9);
+alpha1 = sqrt(m);
 beta1 = 1;
 beta2 = 1;
 c1 = 2;
@@ -117,29 +86,39 @@ max_total_iters = 5000;
 
 for i=1:3
     if i == 1
-        [~, VALS] = re_radial(...
+        [~, ka_kb_VALS] = re_radial(...
             nesta_algo,nesta_cost,f,g,kappa,z0,eps0,t,'alpha',alpha1,'beta',beta1,'total_iters',max_total_iters);
     elseif i == 2
-        [~, VALS] = re_radial(...
+        [~, ua_kb_VALS] = re_radial(...
             nesta_algo,nesta_cost,f,g,kappa,z0,eps0,t,'a',exp(c1*beta2),'c1',c1,'alpha0',sqrt(m),'beta',beta2,'total_iters',max_total_iters);
     elseif i == 3
-        [~, VALS] = re_radial(...
+        [~, ua_ub_VALS] = re_radial(...
             nesta_algo,nesta_cost,f,g,kappa,z0,eps0,t,'a',exp(c1),'c1',c1,'alpha0',sqrt(m),'total_iters',max_total_iters);
     end
-
-    semilogy(VALS,'linewidth',2)
-    
-    hold on
 end
 
 % R&G's scheme
 rg_epsilon = logspace(-2,-6,5);
-%CMAP = linspecer(10);
+rg_inbox_values = cell(5,1);
 
 for i=1:length(rg_epsilon)
     [inbox_values, ~, xout] = best_synchronuous_restarting_scheme(rg_initialize, rg_iteration, f, z0, rg_epsilon(i), ceil(max_total_iters/ceil(-log2(rg_epsilon(i)))), eval_fns);
-    semilogy(squeeze(inbox_values),'linewidth',2,'linestyle','--')%,'color',CMAP(i,:))
-    hold on
+    rg_inbox_values{i} = inbox_values;
+end
+
+%% Plot reconstruction error
+
+figure
+
+semilogy(ka_kb_VALS(1,:),'linewidth',2)
+
+hold on
+
+semilogy(ua_kb_VALS(1,:),'linewidth',2)
+semilogy(ua_ub_VALS(1,:),'linewidth',2)
+
+for i=1:length(rg_epsilon)
+    semilogy(squeeze(rg_inbox_values{i}(1,:)),'linewidth',2,'linestyle','--')
 end
 
 legend_labels = cell(3+length(rg_epsilon),1);
@@ -148,7 +127,7 @@ legend_labels{2} = sprintf('$\\alpha$-grid, $\\beta = %s$', num2str(beta2));
 legend_labels{3} = '$(\alpha,\beta)$-grid';
 
 for i=1:length(rg_epsilon)
-    legend_labels{3+i} = sprintf('R\\&G, $\\epsilon = 10^{%s}$',num2str(log10(rg_epsilon(i))));
+    legend_labels{3+i} = sprintf('\\texttt{Sync}, $\\epsilon = 10^{%s}$',num2str(log10(rg_epsilon(i))));
 end
 
 legend(legend_labels,'interpreter','latex','fontsize',14)
@@ -157,10 +136,43 @@ xlim([0,max_total_iters]); ylim([nlevel/4,inf])
 
 hold off
 
-savefig(fullfile(dname,'rg_vs_ours_comparison'))
+savefig(fullfile(dname,'rg_vs_ours_reconstruction_error'))
 
-clear -regexp ^VALS;
-clear -regexp ^inbox_values;
+
+%% Plot objective error
+
+opt_value = ka_kb_VALS(2,end);
+obj_err_f = @(z) max(z - opt_value,1e-15);
+
+figure
+
+semilogy(obj_err_f(ka_kb_VALS(2,:)),'linewidth',2)
+
+hold on
+
+semilogy(obj_err_f(ua_kb_VALS(2,:)),'linewidth',2)
+semilogy(obj_err_f(ua_ub_VALS(2,:)),'linewidth',2)
+
+for i=1:length(rg_epsilon)
+    semilogy(squeeze(obj_err_f(rg_inbox_values{i}(2,:))),'linewidth',2,'linestyle','--')
+end
+
+legend_labels = cell(3+length(rg_epsilon),1);
+legend_labels{1} = sprintf('$\\alpha = %s$, $\\beta = %s$', num2str(alpha1), num2str(beta1));
+legend_labels{2} = sprintf('$\\alpha$-grid, $\\beta = %s$', num2str(beta2));
+legend_labels{3} = '$(\alpha,\beta)$-grid';
+
+for i=1:length(rg_epsilon)
+    legend_labels{3+i} = sprintf('\\texttt{Sync}, $\\epsilon = 10^{%s}$',num2str(log10(rg_epsilon(i))));
+end
+
+legend(legend_labels,'interpreter','latex','fontsize',14)
+ax=gca; ax.FontSize=14;
+xlim([0,max_total_iters]); ylim([1e-15/4,inf])
+
+hold off
+
+savefig(fullfile(dname,'rg_vs_ours_objective_error'))
 
 
 %% Function definitions
