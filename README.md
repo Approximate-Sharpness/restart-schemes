@@ -5,7 +5,7 @@ This repository may be updated as the article undergoes review.
 
 ## Requirements
 
-The experiments should runs on MATLAB R2020b (or a later version) without issue.
+The experiments should run on MATLAB R2020b (or a later version) without issue.
 
 - linspecer function ([link](https://www.mathworks.com/matlabcentral/fileexchange/42673-beautiful-and-distinguishable-line-colors-colormap)) (simply include `linspecer.m` in your MATLAB userpath)
 - CVX ([link](http://cvxr.com/cvx))
