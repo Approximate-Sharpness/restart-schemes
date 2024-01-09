@@ -6,8 +6,9 @@ clc
 % ours, on a problem of sparse recovery from uniform subsampled Fourier
 % measurements solved using NESTA.
 %
-% Plots of reconstruction error and objective error are shown, with
-% varying values of precision for R&G's scheme.
+% Plots of the minimum number of iterations needed to reach an epsilon
+% precision in objective error versus epsilon are shown. One can see the
+% log^2(1/epsilon) performance of R&G clearly.
 
 import ne_methods.*
 import restart_schemes.fom_nesta
@@ -85,8 +86,8 @@ beta1 = 1;
 beta2 = 1;
 c1 = 2;
 
-t = 12000;
-max_total_iters = 5000;
+t = 25000;
+max_total_iters = 10000;
 
 for i=1:3
     if i == 1
@@ -102,81 +103,63 @@ for i=1:3
 end
 
 % R&G's scheme
-rg_epsilon = logspace(-2,-6,5);
-rg_state_values = cell(5,1);
+rg_epsilon = logspace(-1,-8,50);
+rg_state_values = cell(length(rg_epsilon),1);
 
 for i=1:length(rg_epsilon)
     [state_values, xout] = re_RG_best_sync(rg_initialize, rg_iteration, f, z0, rg_epsilon(i), ceil(max_total_iters/ceil(-log2(rg_epsilon(i)))), eval_fns);
     rg_state_values{i} = state_values;
 end
 
-%% Plot reconstruction error
-
-figure
-
-semilogy(ka_kb_VALS(1,:),'linewidth',2)
-
-hold on
-
-semilogy(ua_kb_VALS(1,:),'linewidth',2)
-semilogy(ua_ub_VALS(1,:),'linewidth',2)
-
-for i=1:length(rg_epsilon)
-    semilogy(squeeze(rg_state_values{i}(1,:)),'linewidth',2,'linestyle','--')
-end
-
-legend_labels = cell(3+length(rg_epsilon),1);
-legend_labels{1} = sprintf('$\\alpha = %s$, $\\beta = %s$', num2str(alpha1), num2str(beta1));
-legend_labels{2} = sprintf('$\\alpha$-grid, $\\beta = %s$', num2str(beta2));
-legend_labels{3} = '$(\alpha,\beta)$-grid';
-
-for i=1:length(rg_epsilon)
-    legend_labels{3+i} = sprintf('\\texttt{Sync}, $\\epsilon = 10^{%s}$',num2str(log10(rg_epsilon(i))));
-end
-
-legend(legend_labels,'interpreter','latex','fontsize',14)
-ax=gca; ax.FontSize=14;
-xlim([0,max_total_iters]); ylim([nlevel/4,inf])
-
-hold off
-
-savefig(fullfile(dname,'rg_vs_ours_reconstruction_error'))
-
-
 %% Plot objective error
 
 opt_value = ka_kb_VALS(2,end);
-obj_err_f = @(z) max(z - opt_value,1e-15);
+iter_threshold_f = @(z, eps) max(z - opt_value,1e-15) > eps;
+
+rg_iters = zeros(length(rg_epsilon),1);
+ka_kb_iters = zeros(length(rg_epsilon),1);
+ua_kb_iters = zeros(length(rg_epsilon),1);
+ua_ub_iters = zeros(length(rg_epsilon),1);
+
+
+for i=1:length(rg_epsilon)
+    [~, rg_idx] = min(iter_threshold_f(rg_state_values{i}(2,:), rg_epsilon(i)));
+    rg_iters(i) = rg_idx;
+
+    [~, ka_kb_idx] = min(iter_threshold_f(ka_kb_VALS(2,:), rg_epsilon(i)));
+    ka_kb_iters(i) = ka_kb_idx;
+
+    [~, ua_kb_idx] = min(iter_threshold_f(ua_kb_VALS(2,:), rg_epsilon(i)));
+    ua_kb_iters(i) = ua_kb_idx;
+
+    [~, ua_ub_idx] = min(iter_threshold_f(ua_ub_VALS(2,:), rg_epsilon(i)));
+    ua_ub_iters(i) = ua_ub_idx;
+end
 
 figure
 
-semilogy(obj_err_f(ka_kb_VALS(2,:)),'linewidth',2)
+semilogx(rg_epsilon, ka_kb_iters, '-', 'linewidth', 2)
 
 hold on
 
-semilogy(obj_err_f(ua_kb_VALS(2,:)),'linewidth',2)
-semilogy(obj_err_f(ua_ub_VALS(2,:)),'linewidth',2)
+semilogx(rg_epsilon, ua_kb_iters, '-', 'linewidth', 2)
+semilogx(rg_epsilon, ua_ub_iters, '-', 'linewidth', 2)
+semilogx(rg_epsilon, rg_iters,'--', 'linewidth', 2)
 
-for i=1:length(rg_epsilon)
-    semilogy(squeeze(obj_err_f(rg_state_values{i}(2,:))),'linewidth',2,'linestyle','--')
-end
+legend_labels = cell(4,1);
 
-legend_labels = cell(3+length(rg_epsilon),1);
 legend_labels{1} = sprintf('$\\alpha = %s$, $\\beta = %s$', num2str(alpha1), num2str(beta1));
 legend_labels{2} = sprintf('$\\alpha$-grid, $\\beta = %s$', num2str(beta2));
 legend_labels{3} = '$(\alpha,\beta)$-grid';
-
-for i=1:length(rg_epsilon)
-    legend_labels{3+i} = sprintf('\\texttt{Sync}, $\\epsilon = 10^{%s}$',num2str(log10(rg_epsilon(i))));
-end
+legend_labels{4} = sprintf('\\texttt{Sync||FOM}');
 
 legend(legend_labels,'interpreter','latex','fontsize',14)
 ax=gca; ax.FontSize=14;
-xlim([0,max_total_iters]); ylim([1e-15/4,inf])
+xlim([1e-8, 1e-1])
 
 hold off
 
-savefig(fullfile(dname,'rg_vs_ours_objective_error'))
+savefig(fullfile(dname,'RG_iters_vs_epsilon'))
 
 
 %% Function definitions
