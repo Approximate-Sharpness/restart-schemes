@@ -1,7 +1,6 @@
 # Restarts subject to approximate sharpness
 
-MATLAB code for the numerical experiments in the preprint [Restarts subject to approximate sharpness: A parameter-free and optimal scheme for first-order methods](https://arxiv.org/abs/2301.02268).
-This repository may be updated as the article undergoes review.
+MATLAB code for the numerical experiments in the published paper [Restarts subject to approximate sharpness: a parameter-free and optimal scheme for first-order methods](https://link.springer.com/article/10.1007/s10208-024-09673-8). The preprint can also be found [here](https://arxiv.org/abs/2301.02268).
 
 ## Requirements
 
